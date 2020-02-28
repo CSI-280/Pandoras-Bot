@@ -6,7 +6,7 @@ from vars import bot, extensions
 
 @bot.event
 async def on_ready():
-    """Change presence and collects data from mongo database"""
+    """Initial function to run when the bot is ready to function"""
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.playing,
                                   name="Games"))
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     for extension in extensions:
         try:
             bot.load_extension(extension)
-        except Exception as e:
+        except:
             print(f"Couldnt load {extension}")
 
 bot.run(os.environ["TOKEN"])  # runs the bot
