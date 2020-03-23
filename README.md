@@ -8,3 +8,19 @@ It's an arcade bot
 4. run `pip install -r requirements.txt`. This will install discord.py and whatever else is included in requirements.txt
 5. Drop `.env` into the project files. This file is pinned in the discord server
 6. Run main.py and the bot should come online and be usable.
+
+## Game Ideas
+- Hangman
+- Bingo
+- Battleship
+- Slots (Gambling/Betting)
+
+## Commands
+- Help command
+- List games
+  - Select game to play
+  - Invite player to game
+- Leaderboards
+- Prize shop (role upgrades?)
+- Check player stats
+  - Currency, level, W/L ratio, games played, etc.
