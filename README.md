@@ -12,6 +12,7 @@ It's an arcade bot
 ## Ideas 
 	Arcade Bot
 	Hangman
+	Tic-Tac-Toe
 	Bingo?
 	Battleship
 	Slots/Gambling/Betting
