@@ -2,14 +2,15 @@ import discord
 from discord.ext import commands
 import os
 
-from vars import bot, extensions
+from vars import bot, extensions, get_prefix
+
 
 @bot.event
 async def on_ready():
     """Initial function to run when the bot is ready to function"""
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.playing,
-                                  name="Games"))
+                                  name="@Pandora's Bot for help"))
     print("Ready Player One.")
 
 
@@ -20,7 +21,11 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    await bot.process_commands(message)
+    # Get and send prefix
+    if message.mentions and message.mentions[0].id == bot.user.id:
+        await message.channel.send(f"{get_prefix(bot, message)}help")
+
+    await bot.process_commands(message)  # checks if message is command
 
 
 # loads extensions(cogs) listed in vars.py
