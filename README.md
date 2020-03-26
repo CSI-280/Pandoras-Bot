@@ -30,3 +30,5 @@ It's an arcade bot
   - Level
   - Win-Loss Ratio
   - Games played
+  
+  [Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=682350831429091357&permissions=268545104&redirect_uri=https%3A%2F%2Fdiscordapp.com%2Fapi%2Foauth2%2Fauthorize%3Fclient_id%3D682350831429091357%26permissions%3D0%26scope%3Dbot&scope=bot)
