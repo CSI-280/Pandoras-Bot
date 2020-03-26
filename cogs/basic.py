@@ -17,8 +17,7 @@ class BaseCommands(commands.Cog):
     async def help(self, ctx, *, page="help"):
         """The standard help command."""
         # get prefix and generate help dictionary
-        p = get_prefix(bot, ctx.message)
-        help_dict = get_help(p)
+        help_dict = get_help(ctx.prefix)
 
         if page == "1":
             page = "commands"
@@ -44,7 +43,7 @@ class BaseCommands(commands.Cog):
     @commands.command(name='howdy')
     async def howdy(self, ctx):
         """Says howdy!"""
-        await ctx.send(f"Howdy, {ctx.message.author.mention}!")
+        await ctx.send(f"Howdy, {ctx.author.mention}!")
 
 
 def setup(bot):
