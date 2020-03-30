@@ -24,7 +24,7 @@ class BaseCommands(commands.Cog):
 
         help_info = help_dict.get(page)
 
-        # Raise is argument isnt found
+        # Raise is argument isn't found
         if not help_info:
             raise UserInputError(f"**{page}** is an invalid argument")
 
@@ -44,6 +44,12 @@ class BaseCommands(commands.Cog):
     async def howdy(self, ctx):
         """Says howdy!"""
         await ctx.send(f"Howdy, {ctx.author.mention}!")
+
+
+    @commands.command(name = "game_list")
+    async def game_list(self, ctx):
+
+
 
 
 def setup(bot):
