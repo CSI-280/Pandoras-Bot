@@ -49,7 +49,19 @@ class BaseCommands(commands.Cog):
     @commands.command(name = "game_list")
     async def game_list(self, ctx):
 
+        # Prints out the list of games
+        await ctx.send("""\
+            !======== [List of Games] ========!
 
+            Game #1
+            TicTacToe   : !tictactoe OR !t OR !ttt 
+
+            Game #2
+            Hangman     :  !h
+
+            Game #3
+            Battleship  :  !bs
+            """)
 
 
 def setup(bot):
