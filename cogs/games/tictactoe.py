@@ -159,9 +159,7 @@ class Game:
         # count turns and generate stats
         turns = list(game.board.values()).count(None) + 1
         stats = {
-            "Turns": turns,
             "XP": "+40",
-            "Total Wins": "at least 4"
         }
 
         # draw and send winner image

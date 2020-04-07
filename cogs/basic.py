@@ -47,20 +47,7 @@ class BaseCommands(commands.Cog):
         """Says howdy!"""
         await ctx.send(f"Howdy, {ctx.author.mention}!")
 
-    @commands.command(name="winner")
-    async def draw_winner(self, ctx):
-        stats = {
-            "stat 1": 123,
-            "stat 2": 321,
-            "stat 3": 456
-        }
-
-        file = drawing.to_discord_file(
-            drawing.draw_winner(ctx.author, **stats))
-        await ctx.send(file=file)
-
-
-    @commands.command(name = "game_list")
+    @commands.command(name="game_list")
     async def game_list(self, ctx):
 
         # Prints out the list of games
