@@ -7,7 +7,8 @@ extensions = [
     "cogs.basic",
     "cogs.errors",
     "cogs.utils",
-    "cogs.games.tictactoe"
+    "cogs.games.tictactoe",
+    "cogs.games.hangman"
 ]
 
 

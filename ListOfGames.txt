@@ -3,24 +3,15 @@ Discord Bot Games
 
 !======== [List of Games] ========!
 
-
 Game #1
-TicTacToe   : !t
+TicTacToe   : !t, !ttt
 
 
 Game #2
-Hangman     :  !h
+Hangman     :  !h, !hm
 
 
 Game #3
 Battleship  :  !bs
-
-
-Game #4
-RockPaperScissors   :  !rps
-.
-.
-.
-.
 
 !======== [End of List] ========!
