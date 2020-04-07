@@ -40,7 +40,7 @@ class Game:
         """Get a game based on a member passed in"""
         return Game._games.get(Game.mkid(member))
 
-    def draw_board(self, footer, win_coords=None):
+    def draw_board(self, footer=None, win_coords=None):
         """Draw the tic-tac-toe board."""
         canvas_width = 800
 
@@ -55,8 +55,12 @@ class Game:
         smallfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 72)
 
         # draw whos turn it is
-        d.text((40, canvas_width), footer,
-               font=smallfnt, fill=(255, 255, 255, 255))
+        if not footer:
+            background = background.crop((0, 0, canvas_width, 800))
+            d = ImageDraw.Draw(background)  # set image for drawing
+        else:
+            d.text((40, canvas_width), footer,
+                   font=smallfnt, fill=(255, 255, 255, 255))
 
         # Draw board values or numbers
         for k, v in self.board.items():
@@ -97,8 +101,9 @@ class Game:
         """Update game statistics"""
         # switch whose turn it is
         self.turn = self.p1 if self.turn == self.p2 else self.p2
-        new_board = discord.File(fp=self.draw_board(f"{self.turn.name}'s turn'"),
-                                 filename="board.webp")
+
+        new_board = self.draw_board(f"{self.turn.name}'s turn")
+        new_board = drawing.to_discord_file(new_board, "board")
         await self.board_msg.delete()
         self.board_msg = await self.channel.send(file=new_board)
 
@@ -125,12 +130,17 @@ class Game:
 
     async def end(self, winner=None):
         """End the game and clean up"""
+
+        # remove ids from set
         p1id = Game.mkid(self.p1)
         p2id = Game.mkid(self.p2)
         tictactoe_q.difference_update({self.p1.id, self.p2.id})
+
+        # remove from active games
         Game._games.pop(p1id)
         game = Game._games.pop(p2id)
 
+        # set what the bot draws
         if not winner:
             msg = "Game Cancelled"
             win_coords = None
@@ -138,12 +148,26 @@ class Game:
             msg = "It's a tie!"
             win_coords = None
         else:
-            msg = f"{winner[0].name} wins!"
+            msg = None
             win_coords = winner[1]
 
+        # update the board with win line if applicable
         await game.board_msg.delete()
         board = game.draw_board(msg, win_coords)
         await game.channel.send(file=drawing.to_discord_file(board, "board"))
+
+        # count turns and generate stats
+        turns = list(game.board.values()).count(None) + 1
+        stats = {
+            "Turns": turns,
+            "XP": "+40",
+            "Total Wins": "at least 4"
+        }
+
+        # draw and send winner image
+        win_image = drawing.draw_winner(winner[0], **stats)
+        file = drawing.to_discord_file(win_image, name="winner")
+        await game.channel.send(file=file)
 
     @staticmethod
     def mkid(player):
