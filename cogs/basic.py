@@ -26,7 +26,7 @@ class BaseCommands(commands.Cog):
 
         help_info = help_dict.get(page)
 
-        # Raise is argument isnt found
+        # Raise is argument isn't found
         if not help_info:
             raise UserInputError(f"**{page}** is an invalid argument")
 
@@ -58,6 +58,24 @@ class BaseCommands(commands.Cog):
         file = drawing.to_discord_file(
             drawing.draw_winner(ctx.author, **stats))
         await ctx.send(file=file)
+
+
+    @commands.command(name = "game_list")
+    async def game_list(self, ctx):
+
+        # Prints out the list of games
+        await ctx.send("""\
+            !======== [List of Games] ========!
+
+            Game #1
+            TicTacToe   : !tictactoe OR !t OR !ttt 
+
+            Game #2
+            Hangman     :  !h
+
+            Game #3
+            Battleship  :  !bs
+            """)
 
 
 def setup(bot):
