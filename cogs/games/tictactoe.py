@@ -8,6 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import UserInputError
 from PIL import Image, ImageFont, ImageDraw, ImageOps
 import requests
+import drawing
 
 from vars import bot, get_prefix, get_help, tictactoe_q
 from auth import authorize
@@ -28,18 +29,7 @@ class Game:
         Game._games[self.id] = self
         Game._games[Game.mkid(p2)] = self
 
-        # We will have to develop a better way than this for battleship
-        self.board = {
-            0: None,
-            1: None,
-            2: None,
-            3: None,
-            4: None,
-            5: None,
-            6: None,
-            7: None,
-            8: None
-        }
+        self.board = {k: None for k in range(9)}
 
     @property
     def id(self):
@@ -50,7 +40,7 @@ class Game:
         """Get a game based on a member passed in"""
         return Game._games.get(Game.mkid(member))
 
-    def draw_board(self, footer, win_coords=None):
+    def draw_board(self, footer=None, win_coords=None):
         """Draw the tic-tac-toe board."""
         canvas_width = 800
 
@@ -65,8 +55,12 @@ class Game:
         smallfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 72)
 
         # draw whos turn it is
-        d.text((40, canvas_width), footer,
-               font=smallfnt, fill=(255, 255, 255, 255))
+        if not footer:
+            background = background.crop((0, 0, canvas_width, 800))
+            d = ImageDraw.Draw(background)  # set image for drawing
+        else:
+            d.text((40, canvas_width), footer,
+                   font=smallfnt, fill=(255, 255, 255, 255))
 
         # Draw board values or numbers
         for k, v in self.board.items():
@@ -101,80 +95,15 @@ class Game:
             )
             d.line(draw_pos, fill=(255, 0, 0, 255), width=15)
 
-            # return byte array to send
-        byte_arr = io.BytesIO()
-        background.save(byte_arr, format="webp")
-        return io.BytesIO(byte_arr.getvalue())
-
-    def draw_versus(self):
-        """Draws a versus image to start the match"""
-        canvas_width = 537
-        canvas_height = 300
-
-        # Create new canvas
-        background = Image.new(
-            mode="RGBA",
-            size=(canvas_width, canvas_height),
-            color=(0, 0, 0, 0)
-        )
-
-        d = ImageDraw.Draw(background)  # set image for drawing
-        fnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 30)
-
-        # load versus
-        versus = Image.open(f"assets{sep}RedVersus.png")
-        versus.thumbnail((192, 192), Image.ANTIALIAS)
-
-        # get discord pfps
-        url = self.p1.avatar_url_as(static_format="webp", size=256)
-        response = requests.get(url)
-        avatar1 = Image.open(io.BytesIO(response.content))
-
-        url = self.p2.avatar_url_as(static_format="webp", size=256)
-        response = requests.get(url)
-        avatar2 = Image.open(io.BytesIO(response.content))
-
-        # Draw Circular Mask
-        masksize = (256, 256)
-        mask = Image.new('L', masksize, 0)  # Black/White
-        maskdraw = ImageDraw.Draw(mask)
-        maskdraw.ellipse((0, 0) + masksize, fill=255)
-
-        # cut circles out of pfps
-        avatar1 = ImageOps.fit(avatar1, mask.size, centering=(0.5, 0.5))
-        avatar1.putalpha(mask)
-        avatar2 = ImageOps.fit(avatar2, mask.size, centering=(0.5, 0.5))
-        avatar2.putalpha(mask)
-
-        # Calculate offsets
-        versus_offset = (canvas_width//2 - versus.size[0]//2,
-                         128-versus.size[1]//2)
-        avatar2_offset = (canvas_width - avatar2.size[0] + 0, 0)
-
-        # paste images on background
-        background.paste(avatar1, (0, 0), avatar1)
-        background.paste(avatar2, avatar2_offset, avatar2)
-        background.paste(versus, versus_offset, versus)
-
-        # Draw names
-        name1width, _ = d.textsize(self.p1.name, fnt)
-        name2width, _ = d.textsize(self.p2.name, fnt)
-        name1pos = (128 - name1width/2, 266)
-        name2pos = ((canvas_width-128) - name2width/2, 266)
-        d.text(name1pos, self.p1.name, font=fnt, fill=(255, 255, 255, 255))
-        d.text(name2pos, self.p2.name, font=fnt, fill=(255, 255, 255, 255))
-
-        # return byte array to send
-        byte_arr = io.BytesIO()
-        background.save(byte_arr, format="webp")
-        return io.BytesIO(byte_arr.getvalue())
+        return background
 
     async def update(self):
         """Update game statistics"""
         # switch whose turn it is
         self.turn = self.p1 if self.turn == self.p2 else self.p2
-        new_board = discord.File(fp=self.draw_board(f"{self.turn.name}'s turn'"),
-                                 filename="board.webp")
+
+        new_board = self.draw_board(f"{self.turn.name}'s turn")
+        new_board = drawing.to_discord_file(new_board, "board")
         await self.board_msg.delete()
         self.board_msg = await self.channel.send(file=new_board)
 
@@ -201,12 +130,17 @@ class Game:
 
     async def end(self, winner=None):
         """End the game and clean up"""
+
+        # remove ids from set
         p1id = Game.mkid(self.p1)
         p2id = Game.mkid(self.p2)
         tictactoe_q.difference_update({self.p1.id, self.p2.id})
+
+        # remove from active games
         Game._games.pop(p1id)
         game = Game._games.pop(p2id)
 
+        # set what the bot draws
         if not winner:
             msg = "Game Cancelled"
             win_coords = None
@@ -214,12 +148,25 @@ class Game:
             msg = "It's a tie!"
             win_coords = None
         else:
-            msg = f"{winner[0].name} wins!"
+            msg = None
             win_coords = winner[1]
 
+        # update the board with win line if applicable
         await game.board_msg.delete()
-        file = discord.File(fp=game.draw_board(msg, win_coords),
-                            filename="board.webp")
+        board = game.draw_board(msg, win_coords)
+        await game.channel.send(file=drawing.to_discord_file(board, "board"))
+
+        # count turns and generate stats
+        turns = list(game.board.values()).count(None) + 1
+        stats = {
+            "Turns": turns,
+            "XP": "+40",
+            "Total Wins": "at least 4"
+        }
+
+        # draw and send winner image
+        win_image = drawing.draw_winner(winner[0], **stats)
+        file = drawing.to_discord_file(win_image, name="winner")
         await game.channel.send(file=file)
 
     @staticmethod
@@ -280,10 +227,14 @@ class TicTacToe(commands.Cog):
 
         # Create new game
         game = Game(p1, p2, ctx.channel)
-        file = discord.File(fp=game.draw_versus(), filename="versus.webp")
+
+        # draw and send versus
+        file = drawing.to_discord_file(drawing.draw_versus(p1, p2))
         game.versus_msg = await game.channel.send(file=file)
-        file = discord.File(fp=game.draw_board(f"{game.turn.name}'s turn"),
-                            filename="board.webp")
+
+        # draw and send board
+        board = game.draw_board(f"{game.turn.name}'s turn")
+        file = drawing.to_discord_file(board, "board")
         game.board_msg = await game.channel.send(file=file)
 
 
