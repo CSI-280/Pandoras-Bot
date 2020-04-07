@@ -6,8 +6,6 @@ import os
 from classes import Guild, Gamer
 from vars import bot, extensions, get_prefix
 
-client = commands.Bot(command_prefix = '!')
-
 
 @bot.event
 async def on_ready():
@@ -43,43 +41,28 @@ async def on_message(message):
     await bot.process_commands(message)  # checks if message is command
 
 
-@client.event
-async def user_join(member):
-    """Open player data and write new data for level system."""
-    with open('users.json', 'r') as f:
-        users = json.load(f)
-
-    # Make an await command for updating the data.
-
-    # Write the new data.
-    with open('users.json', 'w') as f:
-        json.dump(users, f)
+@bot.event
+async def on_guild_join(guild):
+    """Bot joined a new server"""
+    pass
 
 
-@client.event
-async def on_win(player):
-    """Add experience to the winner of a game"""
-    with open('users.json', 'r') as f:
-        users = json.load(f)
-
-    # Make an await command for updating the data, adding experience, and leveling up.
-    # Specify the amount of xp to give the user.
-
-    # Write the new data.
-    with open('users.json', 'w') as f:
-        json.dump(users, f)
+@bot.event
+async def on_guild_remove(guild):
+    """Bot was removed from a server"""
+    pass
 
 
-async def update_data(users, user):
-    """Add new users if they don't already exist and set default xp and level along with their name."""
+@bot.event
+async def on_member_join(member):
+    """Someone joined a server"""
 
 
-async def add_experience(users, user, xp):
-    """Add the specified amount of xp."""
+@bot.event
+async def on_member_remove(member):
+    """Someone left a server"""
+    pass
 
-
-async def level_up(users, user, channel):
-    """Check to see if a user leveled up and update if true"""
 
 # loads extensions(cogs) listed in vars.py
 if __name__ == '__main__':
