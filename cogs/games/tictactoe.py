@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import UserInputError
 from PIL import Image, ImageFont, ImageDraw, ImageOps
 import requests
-from drawing import draw_versus
+import drawing
 
 from vars import bot, get_prefix, get_help, tictactoe_q
 from auth import authorize
@@ -91,10 +91,7 @@ class Game:
             )
             d.line(draw_pos, fill=(255, 0, 0, 255), width=15)
 
-            # return byte array to send
-        byte_arr = io.BytesIO()
-        background.save(byte_arr, format="webp")
-        return io.BytesIO(byte_arr.getvalue())
+        return background
 
     async def update(self):
         """Update game statistics"""
@@ -145,9 +142,8 @@ class Game:
             win_coords = winner[1]
 
         await game.board_msg.delete()
-        file = discord.File(fp=game.draw_board(msg, win_coords),
-                            filename="board.webp")
-        await game.channel.send(file=file)
+        board = game.draw_board(msg, win_coords)
+        await game.channel.send(file=drawing.to_discord_file(board, "board"))
 
     @staticmethod
     def mkid(player):
@@ -207,10 +203,14 @@ class TicTacToe(commands.Cog):
 
         # Create new game
         game = Game(p1, p2, ctx.channel)
-        file = discord.File(fp=draw_versus(p1, p2), filename="versus.webp")
+
+        # draw and send versus
+        file = drawing.to_discord_file(drawing.draw_versus(p1, p2))
         game.versus_msg = await game.channel.send(file=file)
-        file = discord.File(fp=game.draw_board(f"{game.turn.name}'s turn"),
-                            filename="board.webp")
+
+        # draw and send board
+        board = game.draw_board(f"{game.turn.name}'s turn")
+        file = drawing.to_discord_file(board, "board")
         game.board_msg = await game.channel.send(file=file)
 
 
