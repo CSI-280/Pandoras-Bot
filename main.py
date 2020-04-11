@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import os
 
-from classes import Guild, Gamer
+from classes import Guild, Member
 from vars import bot, extensions, get_prefix
 
 
@@ -20,9 +20,9 @@ async def on_ready():
 
     # Create new Guild objects
     for id in new_ids:
-        new_gamers = [Gamer(id=member.id, guild_id=id)
-                      for member in bot.get_guild(id).members]
-        Guild(id=id, prefix='!', gamers=new_gamers)
+        new_members = [Member(member.id, id)
+                       for member in bot.get_guild(id).members]
+        Guild(id=id, members=new_members, prefix='!')
 
     print("Ready Player One.")
 

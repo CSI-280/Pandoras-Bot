@@ -10,7 +10,7 @@ from PIL import Image, ImageFont, ImageDraw, ImageOps
 import requests
 import drawing
 
-from vars import bot, get_prefix, get_help, tictactoe_q
+from vars import bot, get_prefix, get_help
 from auth import authorize
 
 
@@ -21,29 +21,29 @@ class Game:
     def __init__(self, p1, p2, channel):
         self.p1 = p1
         self.p2 = p2
-        self.turn = random.choice((p1, p2))  # choose a random starting player
+
+        # choose a random starting player
+        self.active_player = random.choice((p1, p2))
         self.channel = channel
+        self.id = self.channel.id
         self.versus_msg = None
         self.board_msg = None
 
         Game._games[self.id] = self
-        Game._games[Game.mkid(p2)] = self
-
         self.board = {k: None for k in range(9)}
 
     @property
-    def id(self):
-        return int(str(self.p1.id) + str(self.p1.guild.id))
+    def players(self):
+        return (self.p1, self.p2)
 
     @staticmethod
-    def get(member):
+    def get(id):
         """Get a game based on a member passed in"""
-        return Game._games.get(Game.mkid(member))
+        return Game._games.get(id)
 
-    def draw_board(self, footer=None, win_coords=None):
+    def draw_board(self, **kwargs):
         """Draw the tic-tac-toe board."""
         canvas_width = 800
-
         midpoint = canvas_width // 6  # 133
 
         # Create new canvas
@@ -54,15 +54,15 @@ class Game:
         bigfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 200)
         smallfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 72)
 
-        # draw whos turn it is
-        if not footer:
+        # draw the message at the bottom of the image
+        if kwargs.get("footer"):
+            d.text((40, canvas_width), kwargs.get("footer"),
+                   font=smallfnt, fill=(255, 255, 255, 255))
+        else:
             background = background.crop((0, 0, canvas_width, 800))
             d = ImageDraw.Draw(background)  # set image for drawing
-        else:
-            d.text((40, canvas_width), footer,
-                   font=smallfnt, fill=(255, 255, 255, 255))
 
-        # Draw board values or numbers
+            # Draw board values or numbers
         for k, v in self.board.items():
 
             # The board is split into 6 sections x and y in order to center things easier
@@ -86,12 +86,13 @@ class Game:
             d.text((x, y), msg, font=bigfnt, fill=text_color)
 
         # Draw the winner line
-        if win_coords:
+        if kwargs.get("winner"):
+            winfo = kwargs.get("winner")
             draw_pos = (
-                ((win_coords[0] % 3) * 2+1) * midpoint,  # x1
-                ((win_coords[0] // 3) * 2+1) * midpoint,  # y1
-                ((win_coords[1] % 3) * 2+1) * midpoint,  # x2
-                ((win_coords[1] // 3) * 2+1) * midpoint  # y2
+                ((winfo["start"] % 3) * 2+1) * midpoint,  # x1
+                ((winfo["start"] // 3) * 2+1) * midpoint,  # y1
+                ((winfo["end"] % 3) * 2+1) * midpoint,  # x2
+                ((winfo["end"] // 3) * 2+1) * midpoint  # y2
             )
             d.line(draw_pos, fill=(255, 0, 0, 255), width=15)
 
@@ -100,61 +101,61 @@ class Game:
     async def update(self):
         """Update game statistics"""
         # switch whose turn it is
-        self.turn = self.p1 if self.turn == self.p2 else self.p2
+        self.active_player = self.p1 if self.active_player == self.p2 else self.p2
 
-        new_board = self.draw_board(f"{self.turn.name}'s turn")
-        new_board = drawing.to_discord_file(new_board, "board")
-        await self.board_msg.delete()
+        new_board = self.draw_board(footer=f"{self.active_player.name}'s turn")
+        new_board = drawing.to_discord_file(new_board)
+
+        if self.board_msg:
+            await self.board_msg.delete()
+
         self.board_msg = await self.channel.send(file=new_board)
 
+        # CPU player not smart for now
+        if self.p2 == bot.user:
+            options = [x for x in range(9) if not self.board[x]]
+            move = random.choice(options)
+            await self.channel.send(content=str(move), delete_after=0)
+
     def check_win(self):
-        """Check if the board has a winner"""
+        """Check if the board has a winner."""
         b = self.board
 
         # check rows
         for i in range(0, 7, 3):
             if b[i] == b[i+1] == b[i+2] and b[i]:
-                return b[i], (i, i+2)
+                return {"winner": b[i], "start": i, "end": i+2}
 
         # Check columns
         for i in range(3):
             if b[i] == b[i+3] == b[i+6] and b[i]:
-                return b[i], (i, i+6)
+                return {"winner": b[i], "start": i, "end": i+6}
 
         # Check Diagonals
         if b[0] == b[4] == b[8] and b[0]:
-            return b[0], (0, 8)
+            return {"winner": b[0], "start": 0, "end": 8}
 
         if b[2] == b[4] == b[6] and b[2]:
-            return b[2], (2, 6)
+            return {"winner": b[2], "start": 2, "end": 6}
 
-    async def end(self, winner=None):
+    async def end(self, **results):
         """End the game and clean up"""
 
-        # remove ids from set
-        p1id = Game.mkid(self.p1)
-        p2id = Game.mkid(self.p2)
-        tictactoe_q.difference_update({self.p1.id, self.p2.id})
-
         # remove from active games
-        Game._games.pop(p1id)
-        game = Game._games.pop(p2id)
-
-        # set what the bot draws
-        if not winner:
-            msg = "Game Cancelled"
-            win_coords = None
-        elif winner == "Nobody":
-            msg = "It's a tie!"
-            win_coords = None
-        else:
-            msg = None
-            win_coords = winner[1]
+        game = Game._games.pop(self.channel.id)
 
         # update the board with win line if applicable
         await game.board_msg.delete()
-        board = game.draw_board(msg, win_coords)
-        await game.channel.send(file=drawing.to_discord_file(board, "board"))
+
+        # set what the bot draws
+        if results.get("winner"):
+            board = game.draw_board(winner=results.get("winner"))
+        elif results.get("tie"):
+            board = game.draw_board("It's a tie!")
+        else:
+            board = game.draw_board("Game Cancelled")
+
+        await game.channel.send(file=drawing.to_discord_file(board))
 
         # count turns and generate stats
         turns = list(game.board.values()).count(None) + 1
@@ -163,14 +164,10 @@ class Game:
         }
 
         # draw and send winner image
-        win_image = drawing.draw_winner(winner[0], **stats)
+        winfo = results.get("winner")
+        win_image = drawing.draw_winner(winfo["winner"], **stats)
         file = drawing.to_discord_file(win_image, name="winner")
         await game.channel.send(file=file)
-
-    @staticmethod
-    def mkid(player):
-        """Generates a gameid given a player."""
-        return int(str(player.id) + str(player.guild.id))
 
 
 class TicTacToe(commands.Cog):
@@ -183,30 +180,39 @@ class TicTacToe(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.id not in tictactoe_q:
+
+        # verify author
+        game = Game.get(message.channel.id)
+        if not game or message.author not in game.players:
             return
 
         if message.content == "":
             return
 
-        game = Game.get(message.author)
-        move = message.content[0:1]
-
         # end case
         if message.content.lower() == "end":
             await message.delete()
-            await game.end()
+            await game.end(cancel=True)
+
+        move = message.content[0:1]  # only first character
 
         # check that space is open and input is valid
-        if message.author == game.turn and move in "012345678":
+        if message.author == game.active_player and move in "012345678":
+            # verify move available
             if not game.board[int(move)]:
                 await message.delete()
-                game.board[int(move)] = game.turn
-                winner = game.check_win()
-                if winner:
-                    await game.end(winner)
-                elif not winner and all(game.board.values()):
-                    await game.end("Nobody")
+                game.board[int(move)] = game.active_player
+                win_info = game.check_win()
+
+                # winner
+                if win_info:
+                    await game.end(winner=win_info)
+
+                # board is full
+                elif all(game.board.values()):
+                    await game.end("tie")
+
+                # continue playing
                 else:
                     await game.update()
 
@@ -221,8 +227,6 @@ class TicTacToe(commands.Cog):
         if p1 == p2:
             raise UserInputError("Can't play against yourself")
 
-        tictactoe_q.update({p1.id, p2.id})
-
         # Create new game
         game = Game(p1, p2, ctx.channel)
 
@@ -231,9 +235,7 @@ class TicTacToe(commands.Cog):
         game.versus_msg = await game.channel.send(file=file)
 
         # draw and send board
-        board = game.draw_board(f"{game.turn.name}'s turn")
-        file = drawing.to_discord_file(board, "board")
-        game.board_msg = await game.channel.send(file=file)
+        await game.update()
 
 
 def setup(bot):

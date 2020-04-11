@@ -22,11 +22,11 @@ class Guild:
     """
     _guilds = {}  # dict of guilds that have been created
 
-    def __init__(self, id, prefix, gamers):
+    def __init__(self, id, members, **kwargs):
         self.name = str(bot.get_guild(id))
         self.id = id
-        self.prefix = prefix
-        self.gamers = gamers
+        self.prefix = kwargs.get("prefix", "!")
+        self.members = members
         Guild._guilds[id] = self  # add guild to the dict
 
     @property
@@ -48,7 +48,7 @@ class Guild:
             "name": self.name,
             "id": self.id,
             "prefix": self.prefix,
-            "gamers": [gamer.to_json() for gamer in self.gamers]
+            "members": [member.to_json() for member in self.members]
         }
 
     @staticmethod
@@ -56,12 +56,12 @@ class Guild:
         """Convert valid JSON to guild object."""
         return Guild(
             id=data["id"],
+            members=data["members"],
             prefix=data["prefix"],
-            gamers=data["gamers"]
         )
 
 
-class Gamer:
+class Member:
     """Has information on each member of a server
 
     Args:
@@ -73,7 +73,7 @@ class Gamer:
         guild_id (int): The id of the guild the member belongs to
     """
 
-    def __init__(self, id, guild_id):
+    def __init__(self, id, guild_id, **kwargs):
         self.name = str(bot.get_user(id))
         self.id = id
         self.guild_id = guild_id
@@ -92,7 +92,7 @@ class Gamer:
     @staticmethod
     def from_json(member):
         """Create Theme object from valid JSON"""
-        return Gamer(
+        return Member(
             id=member["id"],
             guild_id=member["guild_id"]
         )

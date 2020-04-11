@@ -20,12 +20,8 @@ def get_prefix(bot, message):
 bot = commands.Bot(command_prefix=get_prefix,
                    help_command=None)  # creates bot object
 
-###################### QUEUES ######################
-
-tictactoe_q = set()  # holds players current playing tictactoe
-
-
 ###################### HELP RELATED STUFF ######################
+
 
 def get_help(p):
     """Places prefixes into a help dictionary."""
