@@ -4,6 +4,7 @@ import json
 import os
 
 from classes import Guild, Member
+import database as db
 from vars import bot, extensions, get_prefix
 
 
@@ -15,14 +16,20 @@ async def on_ready():
                                   name="@Pandora's Bot for help"))
 
     print("Generating Objects...")
+    db.getall()  # get and build returning guilds
+
     # collect new guild ids and create objects for them
     new_ids = {guild.id for guild in bot.guilds} - set(Guild._guilds.keys())
 
     # Create new Guild objects
+    new_guilds = []
     for id in new_ids:
-        new_members = [Member(member.id, id)
-                       for member in bot.get_guild(id).members]
-        Guild(id=id, members=new_members, prefix='!')
+        new_members = {member.id: Member(member.id, id)
+                       for member in bot.get_guild(id).members}
+        new_guilds.append(Guild(id=id, members=new_members))
+
+    print("Updating database...")
+    db.update(*new_guilds)
 
     print("Ready Player One.")
 
@@ -44,24 +51,33 @@ async def on_message(message):
 @bot.event
 async def on_guild_join(guild):
     """Bot joined a new server"""
-    pass
+    new_members = {member.id: Member(member.id, guild.id)
+                   for member in guild.members}
+    guild = Guild(id=id, members=new_members)
+    db.update(guild)
 
 
 @bot.event
 async def on_guild_remove(guild):
     """Bot was removed from a server"""
-    pass
+    Guild.pop(guild.id, None)
+    db.delete_one(guild.id)
 
 
 @bot.event
 async def on_member_join(member):
     """Someone joined a server"""
+    guild = Guild.get(member.guild.id)
+    guild.members[member.id] = Member(member.id, guild.id)
+    db.update(guild)
 
 
 @bot.event
 async def on_member_remove(member):
     """Someone left a server"""
-    pass
+    guild = Guild.get(member.guild.id)
+    guild.members.pop(member.id, None)
+    db.update(guild)
 
 
 # loads extensions(cogs) listed in vars.py

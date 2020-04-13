@@ -4,7 +4,7 @@ for the bot to run before functions.
 
 from discord.ext.commands import CommandError, UserInputError
 
-import classes
+import classes  # dodging circular imports
 
 
 class MissingGuild(CommandError):
