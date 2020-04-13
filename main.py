@@ -5,6 +5,7 @@ import os
 
 from classes import Guild, Member
 import database as db
+from env import TOKEN
 from vars import bot, extensions, get_prefix
 
 
@@ -88,4 +89,4 @@ if __name__ == '__main__':
         except:
             print(f"Couldn't load {extension}")
 
-bot.run(os.environ["TOKEN"])  # runs the bot
+bot.run(TOKEN)  # runs the bot

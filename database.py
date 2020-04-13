@@ -3,10 +3,11 @@ import sys
 from pymongo import MongoClient
 from classes import Guild
 from vars import bot
+from env import MONGO_PASS
 
 # database setup
 client = MongoClient(
-    f"mongodb+srv://pandorasbot:{os.environ['MONGO_PASS']}@cluster0-wglq9.mongodb.net/test?retryWrites=true&w=majority")
+    f"mongodb+srv://pandorasbot:{MONGO_PASS}@cluster0-wglq9.mongodb.net/test?retryWrites=true&w=majority")
 db = client.PandorasBotDB
 coll = db.PandorasBotData
 
