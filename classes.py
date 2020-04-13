@@ -26,13 +26,15 @@ class Guild:
         self.name = str(bot.get_guild(id))
         self.id = id
         self.prefix = kwargs.get("prefix", "!")
-        self.members = members
+        self.members = members  # dict
         Guild._guilds[id] = self  # add guild to the dict
 
     @property
     def dguild(self):
         """Returns the discord.py version of the guild"""
         return bot.get_guild(self.id)
+
+    ################## CLASS METHODS ##################
 
     @classmethod
     def get(cls, id):
@@ -42,13 +44,20 @@ class Guild:
             raise auth.MissingGuild()
         return guild
 
+    @classmethod
+    def pop(cls, id, alt=None):
+        """Pop a value off the dict list"""
+        return cls._guilds.pop(id, alt)
+
+    ################## JSON CONVERSION ##################
+
     def to_json(self):
         """Convert a guild to valid JSON format"""
         return {
             "name": self.name,
             "id": self.id,
             "prefix": self.prefix,
-            "members": [member.to_json() for member in self.members]
+            "members": {str(id): member.to_json() for id, member in self.members.items()}
         }
 
     @staticmethod
@@ -56,7 +65,8 @@ class Guild:
         """Convert valid JSON to guild object."""
         return Guild(
             id=data["id"],
-            members=data["members"],
+            members={int(id): Member.from_json(data)
+                     for id, data in data["members"].items()},
             prefix=data["prefix"],
         )
 
@@ -81,6 +91,8 @@ class Member:
     @property
     def guild(self):
         return Guild.get(self.guild_id)
+
+    ################## JSON CONVERSION ##################
 
     def to_json(self):
         """Convert Color object to valid JSON."""
