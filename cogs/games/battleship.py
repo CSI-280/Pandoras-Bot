@@ -146,8 +146,3 @@ class BattleShip:
     def check_win(self, board):
         # Check the board to see if win condition is met. If there's a char that isn't hit or miss, return false.
 
-def main():
-    # Create the ship types, board, player boards, and game loop.
-
-if __name__ == "__main__":
-    main()
