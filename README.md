@@ -14,28 +14,28 @@ It's an arcade bot
 ### Games and Game Commands
 	
 	Tic-Tac-Toe:
-* Game Start - !t or !ttt + @Player
+* How to Play - !t or !ttt + @Player
 
 * Pick a Spot - Simply choose a number "*0 - 9*"
 	
 ----
 
     Hangman: 
-* Game Start - !hangman or !h or !hm + @Player
+* How to Play - !hangman or !h or !hm + @Player
 
 * Guess a Character - Simply type any character 
 
 ----
 
     Rock-Paper-Scissors
-* Game Start - !rps + @Player
+* How to Play - !rps + @Player
 
 * Choose an option - Type "rock", "paper", or "scissors"
 
 ----
 
     Battleship:
-* Game Start - !bs + @Player
+* How to Play - !bs + @Player
 
 * Place Ships:
     * 1st Step: Choose positioning, either horizontal or vertical  
