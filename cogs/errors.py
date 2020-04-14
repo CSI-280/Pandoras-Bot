@@ -5,6 +5,7 @@ import traceback
 
 import discord
 from discord.ext import commands
+import auth
 
 from vars import bot, get_prefix
 
@@ -21,6 +22,9 @@ class CommandErrorHandler(commands.Cog):
         # skip if command is invalid
         if isinstance(error, commands.CommandNotFound):
             return
+
+        elif isinstance(error, auth.RegistrationError):
+            return await ctx.send(error)
 
         elif isinstance(ctx.channel, discord.channel.DMChannel):
             return await ctx.send(f"**{ctx.command}** must be used in a server channel")

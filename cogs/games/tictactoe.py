@@ -2,16 +2,19 @@
 import io
 import random
 from os.path import sep
+import asyncio
 
 import discord
+import requests
 from discord.ext import commands
 from discord.ext.commands import UserInputError
-from PIL import Image, ImageFont, ImageDraw, ImageOps
-import requests
-import drawing
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from vars import bot, get_prefix, get_help
+import drawing
 from auth import authorize
+from classes import Player
+from utils import award_xp
+from vars import bot, get_help, get_prefix
 
 
 class Game:
@@ -35,6 +38,10 @@ class Game:
     @property
     def players(self):
         return (self.p1, self.p2)
+
+    @property
+    def ids(self):
+        return (self.p1.id, self.p2.id)
 
     @staticmethod
     def get(id):
@@ -115,6 +122,7 @@ class Game:
         if self.p2 == bot.user:
             options = [x for x in range(9) if not self.board[x]]
             move = random.choice(options)
+            await asyncio.sleep(1)
             await self.channel.send(content=str(move), delete_after=0)
 
     def check_win(self):
@@ -150,24 +158,28 @@ class Game:
         # set what the bot draws
         if results.get("winner"):
             board = game.draw_board(winner=results.get("winner"))
+            award_xp(*game.ids,
+                     game="tictactoe",
+                     winner=results.get("winner")["winner"].id)
         elif results.get("tie"):
-            board = game.draw_board("It's a tie!")
+            board = game.draw_board(footer="It's a tie!")
+            award_xp(*game.ids, game="tictactoe")
         else:
-            board = game.draw_board("Game Cancelled")
+            board = game.draw_board(footer="Game Cancelled")
 
         await game.channel.send(file=drawing.to_discord_file(board))
 
         # count turns and generate stats
-        turns = list(game.board.values()).count(None) + 1
         stats = {
-            "XP": "+40",
+            "XP": "+10",
         }
 
         # draw and send winner image
         winfo = results.get("winner")
-        win_image = drawing.draw_winner(winfo["winner"], **stats)
-        file = drawing.to_discord_file(win_image, name="winner")
-        await game.channel.send(file=file)
+        if winfo:
+            win_image = drawing.draw_winner(winner=winfo["winner"], **stats)
+            file = drawing.to_discord_file(win_image, name="winner")
+            await game.channel.send(file=file)
 
 
 class TicTacToe(commands.Cog):
@@ -210,7 +222,7 @@ class TicTacToe(commands.Cog):
 
                 # board is full
                 elif all(game.board.values()):
-                    await game.end("tie")
+                    await game.end(tie=True)
 
                 # continue playing
                 else:

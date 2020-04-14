@@ -6,9 +6,9 @@ from discord.ext import commands
 extensions = [
     "cogs.basic",
     "cogs.errors",
-    "cogs.utils",
+    "cogs.utility",
     "cogs.games.tictactoe",
-    "cogs.games.hangman"
+    "cogs.profile"
 ]
 
 emoji_dict = {"checkmark": "✅",
@@ -21,6 +21,7 @@ emoji_dict = {"checkmark": "✅",
               "double_down": "⏬",
               "refresh": "🔄",
               "updown": "↕️"}
+
 
 def get_prefix(bot, message):
     """Gets the server prefix."""
