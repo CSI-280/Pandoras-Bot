@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import UserInputError
 
-from vars import bot, get_prefix, get_help
+from vars import bot, get_help
+from sender import PaginatedEmbed
 
 import drawing
 
@@ -16,31 +17,18 @@ class BaseCommands(commands.Cog):
         self.bot = bot
 
     @commands.command(name="help")
-    async def help(self, ctx, *, page="help"):
+    async def help(self, ctx, *, page="0"):
         """The standard help command."""
+
         # get prefix and generate help dictionary
         help_dict = get_help(ctx.prefix)
 
-        if page == "1":
-            page = "commands"
+        if not page.isdigit() or not -1 < int(page) < len(help_dict):
+            raise commands.UserInputError(
+                f"Invalid page number. Number must be between 0-{len(help_dict)-1}")
 
-        help_info = help_dict.get(page)
-
-        # Raise is argument isn't found
-        if not help_info:
-            raise UserInputError(f"**{page}** is an invalid argument")
-
-        # Generate embed
-        help_embed = discord.Embed(title=help_info["title"],
-                                   description=help_info["description"],
-                                   color=discord.Colour.blue())
-
-        # Add fields to embed
-        for k, v in help_info["fields"].items():
-            help_embed.add_field(name=k, value=v, inline=False)
-
-        # send embed to channel
-        await ctx.send(embed=help_embed)
+        pages = PaginatedEmbed(content=help_dict, pointer=int(page))
+        await pages.send(ctx.channel)
 
     @commands.command(name='howdy')
     async def howdy(self, ctx):
