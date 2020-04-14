@@ -9,26 +9,61 @@ It's an arcade bot
 5. Drop `.env` into the project files. This file is pinned in the discord server
 6. Run main.py and the bot should come online and be usable.
 
-## Ideas 
-	Arcade Bot
-	Hangman
-	Tic-Tac-Toe
-	Bingo?
-	Battleship
-	Slots/Gambling/Betting
-	Leveling System
+----
 
-## Commands
-- Help command
-- List of games 
-  - Select game to play
-  - Invite a player
-- Check leaderboard
-- Prize system (Role upgrades)
-- Check player stats
+### Games and Game Commands
+	
+	Tic-Tac-Toe:
+* Game Start - !t or !ttt + @Player
+
+* Pick a Spot - Simply choose a number "*0 - 9*"
+	
+----
+
+    Hangman: 
+* Game Start - !hangman or !h or !hm + @Player
+
+* Guess a Character - Simply type any character 
+
+----
+
+    Rock-Paper-Scissors
+* Game Start - !rps + @Player
+
+* Choose an option - Type "rock", "paper", or "scissors"
+
+----
+
+    Battleship:
+* Game Start - !bs + @Player
+
+* Place Ships:
+    * 1st Step: Choose positioning, either horizontal or vertical  
+    * 2nd Step: Choose starting coordinate and ending coordinate for the
+     ship (Ex: A1 - A4)
+    
+* Guess Coordinate - !shoot + Coordinate (Ex: B6)
+----
+
+### Commands
+- Help command - !h + number "*1 - 3*"
+    - List of games (!h 2)
+- Invite a player - *Incomplete*
+- Check leaderboard - *Incomplete*
+- Prize system (Role upgrades) - *Incomplete*
+- Check player stats - *Incomplete*
   - Currency
   - Level
   - Win-Loss Ratio
   - Games played
+  
+----
+  
+### Other Ideas 
+
+- Bingo?
+- Slots/Gambling/Betting
+- Leveling System
+ 
   
   [Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=682350831429091357&permissions=268545104&redirect_uri=https%3A%2F%2Fdiscordapp.com%2Fapi%2Foauth2%2Fauthorize%3Fclient_id%3D682350831429091357%26permissions%3D0%26scope%3Dbot&scope=bot)
