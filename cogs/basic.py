@@ -24,6 +24,9 @@ class BaseCommands(commands.Cog):
         if page == "1":
             page = "commands"
 
+        if page == "2":
+            page = "gamelist"
+
         help_info = help_dict.get(page)
 
         # Raise is argument isn't found

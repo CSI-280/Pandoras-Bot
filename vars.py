@@ -32,6 +32,7 @@ def get_help(p):
                             f"To go to another page please use `{p}help <page>`\n"
                             f"Example `{p}help 1`, `{p}help setup`"),
             "fields": {"1. Commands": "General, Non-game related commands",
+                        "2. Gamelist": "List of games on Pandora's bot",
                        "-----------------------------": "[Github](https://github.com/CSI-280/Pandoras-Bot)"}
 
         },
@@ -44,5 +45,13 @@ def get_help(p):
                      f"`{p}prefix`: Not yet implemented"),
             }
 
+        },
+        "gamelist": {
+            "title": "Pandora's Bot List of Games",
+            "description": f"This is a list of games playable in Pandora's bot",
+            "fields": {"TicTacToe": "play with `!t`, `!ttt`",
+                        "Hangman": "play with `!h`, `!hm`",
+                        "Battleship": "play with `!bs`"}   
+                    
         }
     }
