@@ -1,7 +1,7 @@
 import os
 import sys
 from pymongo import MongoClient
-from classes import Guild, Player
+import classes
 from vars import bot
 from env import MONGO_PASS, BOT_VERSION
 
@@ -29,7 +29,7 @@ def update(*objects):
     """
 
     for obj in objects:
-        if isinstance(obj, Guild):
+        if isinstance(obj, classes.Guild):
             coll = guild_coll
         else:
             coll = player_coll
@@ -50,14 +50,14 @@ def getall():
 
     Only runs on start of program
     """
-    Guild._guilds.clear()  # remove all guilds to be remade
+    classes.Guild._guilds.clear()  # remove all guilds to be remade
     data = list(guild_coll.find())  # get mongo data
 
     for guild_dict in data:
-        Guild.from_json(guild_dict)  # build guild
+        classes.Guild.from_json(guild_dict)  # build guild
 
-    Player._players.clear()
+    classes.Player._players.clear()
     data = list(player_coll.find())
 
     for player_dict in data:
-        Player.from_json(player_dict)
+        classes.Player.from_json(player_dict)

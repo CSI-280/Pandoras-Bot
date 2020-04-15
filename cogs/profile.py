@@ -5,7 +5,7 @@ import database as db
 from auth import authorize
 from classes import Player
 from vars import bot
-from classes import Player
+from drawing import to_discord_file
 
 
 class ProfileCommands(commands.Cog):
@@ -30,6 +30,13 @@ class ProfileCommands(commands.Cog):
         new_player = Player(bot.user.id)
         await ctx.send("Registration SUCCessful! UwU")
         db.update(new_player)
+
+    @commands.command(name="card")
+    async def show_player_card(self, ctx):
+        """Shows a player's game card"""
+        player = Player.get(ctx.author.id)
+        card = player.draw_card()
+        await ctx.send(file=to_discord_file(card))
 
 
 def setup(bot):

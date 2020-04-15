@@ -43,8 +43,8 @@ class CommandErrorHandler(commands.Cog):
         await ctx.send(embed=error_embed)
 
         # send to devs too
-        error_channel = bot.get_channel(692427334803914813)
-        await error_channel.send(embed=error_embed)
+        # error_channel = bot.get_channel(692427334803914813)
+        # await error_channel.send(embed=error_embed)
 
         print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
         traceback.print_exception(

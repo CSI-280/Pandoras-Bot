@@ -58,18 +58,6 @@ def draw_versus(p1, p2):
     avatar1 = get_user_img(p1, mask="circle")
     avatar2 = get_user_img(p2, mask="circle")
 
-    # # Draw Circular Mask
-    # masksize = (256, 256)
-    # mask = Image.new('L', masksize, 0)  # Black/White
-    # maskdraw = ImageDraw.Draw(mask)
-    # maskdraw.ellipse((0, 0) + masksize, fill=255)
-
-    # # cut circles out of pfps
-    # avatar1 = ImageOps.fit(avatar1, mask.size, centering=(0.5, 0.5))
-    # avatar1.putalpha(mask)
-    # avatar2 = ImageOps.fit(avatar2, mask.size, centering=(0.5, 0.5))
-    # avatar2.putalpha(mask)
-
     # Calculate offsets
     versus_offset = (canvas_width//2 - versus.size[0]//2,
                      128-versus.size[1]//2)
@@ -123,3 +111,13 @@ def draw_winner(winner, **kwargs):
                font=textfnt, fill=(255, 255, 255, 255))
 
     return background
+
+
+def center_img(canvas, img):
+    sizex, sizey = img.size
+    return (canvas[0]//2 - sizex//2, canvas[1]//2 - sizey//2)
+
+
+def center_text(canvas, text, d, font):
+    width, height = d.textsize(text, font)
+    return (canvas[0]//2 - width//2, canvas[1]//2 - height//2)

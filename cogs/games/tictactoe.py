@@ -3,6 +3,7 @@ import io
 import random
 from os.path import sep
 import asyncio
+from itertools import cycle
 
 import discord
 import requests
@@ -12,41 +13,26 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 import drawing
 from auth import authorize
-from classes import Player
-from utils import award_xp
+from classes import Player, Game
 from vars import bot, get_help, get_prefix
 
 
-class Game:
+class TicTacToe(Game):
     """Class for holding the tic tac toe board"""
-    _games = {}  # all of the active games
 
-    def __init__(self, p1, p2, channel):
-        self.p1 = p1
-        self.p2 = p2
+    def __init__(self, channel, p1, p2):
+        super().__init__("tictactoe", channel, p1, p2)
 
         # choose a random starting player
         self.active_player = random.choice((p1, p2))
-        self.channel = channel
-        self.id = self.channel.id
         self.versus_msg = None
         self.board_msg = None
 
-        Game._games[self.id] = self
         self.board = {k: None for k in range(9)}
 
     @property
-    def players(self):
-        return (self.p1, self.p2)
-
-    @property
     def ids(self):
-        return (self.p1.id, self.p2.id)
-
-    @staticmethod
-    def get(id):
-        """Get a game based on a member passed in"""
-        return Game._games.get(id)
+        return {p.id for p in self.players}
 
     def draw_board(self, **kwargs):
         """Draw the tic-tac-toe board."""
@@ -79,7 +65,7 @@ class Game:
             text_color = (255, 255, 255, 20)
             # Convert player to X and O
             if v:
-                v = "X" if v == self.p1 else "O"
+                v = "X" if v == self.players[0] else "O"
                 text_color = (255, 255, 255, 255)
 
             # generate message and offset values
@@ -108,9 +94,9 @@ class Game:
     async def update(self):
         """Update game statistics"""
         # switch whose turn it is
-        self.active_player = self.p1 if self.active_player == self.p2 else self.p2
+        self.end_turn()
 
-        new_board = self.draw_board(footer=f"{self.active_player.name}'s turn")
+        new_board = self.draw_board(footer=f"{self.lead.name}'s turn")
         new_board = drawing.to_discord_file(new_board)
 
         if self.board_msg:
@@ -119,11 +105,11 @@ class Game:
         self.board_msg = await self.channel.send(file=new_board)
 
         # CPU player not smart for now
-        if self.p2 == bot.user:
-            options = [x for x in range(9) if not self.board[x]]
-            move = random.choice(options)
-            await asyncio.sleep(1)
-            await self.channel.send(content=str(move), delete_after=0)
+        # if self.p2 == bot.user:
+        #     options = [x for x in range(9) if not self.board[x]]
+        #     move = random.choice(options)
+        #     await asyncio.sleep(1)
+        #     await self.channel.send(content=str(move), delete_after=0)
 
     def check_win(self):
         """Check if the board has a winner."""
@@ -146,43 +132,33 @@ class Game:
         if b[2] == b[4] == b[6] and b[2]:
             return {"winner": b[2], "start": 2, "end": 6}
 
-    async def end(self, **results):
+    async def end(self, *args, winfo=None):
         """End the game and clean up"""
 
         # remove from active games
         game = Game._games.pop(self.channel.id)
 
         # update the board with win line if applicable
-        await game.board_msg.delete()
+        if game.board_msg:
+            await game.board_msg.delete()
 
         # set what the bot draws
-        if results.get("winner"):
-            board = game.draw_board(winner=results.get("winner"))
-            award_xp(*game.ids,
-                     game="tictactoe",
-                     winner=results.get("winner")["winner"].id)
-        elif results.get("tie"):
+        if winfo:
+            winner = winfo["winner"]
+            board = game.draw_board(winner=winfo)
+            game.winners.add(winner=winner.id)
+            game.award_xp()
+        elif "tie" in args:
             board = game.draw_board(footer="It's a tie!")
-            award_xp(*game.ids, game="tictactoe")
+            game.award_xp()
         else:
             board = game.draw_board(footer="Game Cancelled")
+            return
 
         await game.channel.send(file=drawing.to_discord_file(board))
 
-        # count turns and generate stats
-        stats = {
-            "XP": "+10",
-        }
 
-        # draw and send winner image
-        winfo = results.get("winner")
-        if winfo:
-            win_image = drawing.draw_winner(winner=winfo["winner"], **stats)
-            file = drawing.to_discord_file(win_image, name="winner")
-            await game.channel.send(file=file)
-
-
-class TicTacToe(commands.Cog):
+class TicTacToeCog(commands.Cog):
     """Handles all of the simple commands such as saying howdy or
     the help command.
     """
@@ -195,7 +171,7 @@ class TicTacToe(commands.Cog):
 
         # verify author
         game = Game.get(message.channel.id)
-        if not game or message.author not in game.players:
+        if not game or message.author.id not in [p.id for p in game.players]:
             return
 
         if message.content == "":
@@ -213,16 +189,16 @@ class TicTacToe(commands.Cog):
             # verify move available
             if not game.board[int(move)]:
                 await message.delete()
-                game.board[int(move)] = game.active_player
-                win_info = game.check_win()
+                game.board[int(move)] = game.lead
+                winfo = game.check_win()
 
                 # winner
-                if win_info:
-                    await game.end(winner=win_info)
+                if winfo:
+                    await game.end(winner=winfo)
 
                 # board is full
                 elif all(game.board.values()):
-                    await game.end(tie=True)
+                    await game.end("tie")
 
                 # continue playing
                 else:
@@ -233,22 +209,22 @@ class TicTacToe(commands.Cog):
         """Starts up a game of tic tac toe with another user"""
         authorize(ctx, "mentions")  # check for a mentioned user
 
-        p1 = ctx.author
-        p2 = ctx.message.mentions[0]  # first mentioned user
+        p1 = Player.get(ctx.author.id)
+        p2 = Player.get(ctx.message.mentions[0].id)
 
         if p1 == p2:
             raise UserInputError("Can't play against yourself")
 
         # Create new game
-        game = Game(p1, p2, ctx.channel)
+        game = TicTacToe(ctx.channel, p1, p2)
 
         # draw and send versus
-        file = drawing.to_discord_file(drawing.draw_versus(p1, p2))
-        game.versus_msg = await game.channel.send(file=file)
+        file = drawing.to_discord_file(drawing.draw_versus(p1.user, p2.user))
+        await game.channel.send(file=file)
 
         # draw and send board
         await game.update()
 
 
 def setup(bot):
-    bot.add_cog(TicTacToe(bot))
+    bot.add_cog(TicTacToeCog(bot))
