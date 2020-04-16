@@ -387,7 +387,7 @@ class Game:
             games = player.games_played[self.name] if player.games_played[self.name] else 1
             ratio = round(player.wins[self.name]/games, 3) * 100
             print(ratio)
-            msg = f"{ratio}%"
+            msg = f"{round(ratio, 1)}%"
             msgx, msgy = statfnt.getsize(msg)
             offset = (RATIO_PCT * IMGW - msgx//2,
                       center - msgy//2)

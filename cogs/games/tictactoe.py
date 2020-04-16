@@ -96,31 +96,38 @@ class TicTacToe(Game):
         # switch whose turn it is
         self.next_turn()
 
+        # Have the bot move
+        if self.lead.id == bot.user.id and not all(self.board.values()):
+            self.automove()
+            self.next_turn()
+
+        # Check win
+        winfo = self.check_win()
+        if winfo:
+            return await self.end("winner")
+        elif all(self.board.values()):
+            return await self.end("tie")
+
         new_board = self.draw_board(footer=f"{self.lead.name}'s turn")
         new_board = drawing.to_discord_file(new_board)
 
-        if self.board_msg:
+        try:
             await self.board_msg.delete()
+        except:
+            pass
 
         self.board_msg = await self.channel.send(file=new_board)
-
-        # CPU player not smart for now
-        # if self.p2 == bot.user:
-        #     options = [x for x in range(9) if not self.board[x]]
-        #     move = random.choice(options)
-        #     await asyncio.sleep(1)
-        #     await self.channel.send(content=str(move), delete_after=0)
 
     def check_win(self):
         """Check if the board has a winner."""
         b = self.board
 
-        # check rows
+        # check Rows
         for i in range(0, 7, 3):
             if b[i] == b[i+1] == b[i+2] and b[i]:
                 return {"winner": b[i], "start": i, "end": i+2}
 
-        # Check columns
+        # Check Columns
         for i in range(3):
             if b[i] == b[i+3] == b[i+6] and b[i]:
                 return {"winner": b[i], "start": i, "end": i+6}
@@ -131,6 +138,62 @@ class TicTacToe(Game):
 
         if b[2] == b[4] == b[6] and b[2]:
             return {"winner": b[2], "start": 2, "end": 6}
+
+    def check_potential_win(self):
+        b = self.board
+
+        for player in self.players:
+
+            # check Rows
+            for i in range(0, 7, 3):
+                count = 0
+                empty = i
+                for j in range(3):
+                    if b[i+j] == player:
+                        count += 1
+                    else:
+                        empty = i + j
+                if count >= 2 and not b[empty]:
+                    print(empty)
+                    return empty
+
+            # Check Columns
+            for i in range(3):
+                count = 0
+                empty = i
+                for j in range(0, 7, 3):
+                    if b[i+j] == player:
+                        count += 1
+                    else:
+                        empty = i + j
+                if count >= 2 and not b[empty]:
+                    print(empty)
+                    return empty
+
+            # Check Diagonals
+            count = 0
+            empty = i
+            for i in range(0, 9, 4):
+                if b[i] == player:
+                    count += 1
+                else:
+                    empty = i
+            if count >= 2 and not b[empty]:
+                print(empty)
+                return empty
+
+            count = 0
+            empty = i
+            for i in range(2, 7, 2):
+                if b[i] == player:
+                    count += 1
+                else:
+                    empty = i
+            if count >= 2 and not b[empty]:
+                print(empty)
+                return empty
+
+        return 4
 
     async def end(self, *args):
         """End the game and clean up"""
@@ -151,16 +214,46 @@ class TicTacToe(Game):
             game.winners.add(winner.id)
             game.award_xp()
         elif "tie" in args:
-            board = game.draw_board(footer="It's a tie!")
+            board = game.draw_board()
             game.award_xp()
         else:
             board = game.draw_board(footer="Game Cancelled")
 
         await game.channel.send(file=drawing.to_discord_file(board))
 
-        if "winner" in args:
+        if "winner" in args or "tie" in args:
             sb = game.draw_scoreboard()
             await game.channel.send(file=drawing.to_discord_file(sb))
+
+    def automove(self):
+        """Automatically chooses a move for the lead player"""
+        edges = (self.board[1], self.board[3], self.board[5], self.board[7])
+        corners = (self.board[0], self.board[2], self.board[6], self.board[8])
+        options = [x for x in range(9) if not self.board[x]]  # open spots
+
+        if not self.board[4]:
+            print("Going center because open")
+            move = 4
+
+        # move on side if middle taken
+        elif len(options) == 8 and self.board[4]:
+            print("GOING RANDOM CORNER")
+            move = random.choice((0, 2, 6, 8))
+
+        elif len(options) == 7 and any(edges):
+            print("SET TRAP")
+            if self.board[1] or self.board[3]:
+                move = 8
+            else:
+                move = 0
+        else:
+            print("CHECKING WINS")
+            # check for wins
+            move = self.check_potential_win()
+
+        if self.board[move]:
+            move = random.choice(options)
+        self.board[move] = self.lead
 
 
 class TicTacToeCog(commands.Cog):
@@ -195,19 +288,7 @@ class TicTacToeCog(commands.Cog):
             if not game.board[int(move)]:
                 await message.delete()
                 game.board[int(move)] = game.lead
-
-                winfo = game.check_win()
-                # winner
-                if winfo:
-                    await game.end("winner")
-
-                # board is full
-                elif all(game.board.values()):
-                    await game.end("tie")
-
-                # continue playing
-                else:
-                    await game.update()
+                await game.update()
 
     @commands.command(name="tictactoe", aliases=["ttt", "t"])
     async def tictactoe(self, ctx):
