@@ -27,7 +27,7 @@ class TicTacToe(Game):
         self.board_msg = None
         self.board = {k: None for k in range(9)}
 
-    def draw_board(self, **kwargs):
+    def draw_board(self, *args, **kwargs):
         """Draw the tic-tac-toe board."""
 
         # Create new canvas
@@ -85,6 +85,11 @@ class TicTacToe(Game):
             )
             d.line(draw_pos, fill=(255, 0, 0, 255), width=15)
 
+        if "draw" in args:
+            dx, dy = bigfnt.getsize("DRAW!")
+            draw_offset = (IMGW//2 - dx//2, IMGH//2 - dy//2)
+            d.text(draw_offset, "DRAW!", font=bigfnt, fill=(235, 77, 75, 255))
+
         return background
 
     async def update(self):
@@ -102,7 +107,7 @@ class TicTacToe(Game):
         if winfo:
             return await self.end("winner")
         elif all(self.board.values()):
-            return await self.end("tie")
+            return await self.end("draw")
 
         new_board = self.draw_board(footer=f"{self.lead.name}'s turn")
         new_board = drawing.to_discord_file(new_board)
@@ -157,7 +162,6 @@ class TicTacToe(Game):
                     else:
                         empty = i + j
                 if count >= 2 and not b[empty]:
-                    print(empty)
                     return empty
 
             # Check Columns
@@ -170,7 +174,6 @@ class TicTacToe(Game):
                     else:
                         empty = i + j
                 if count >= 2 and not b[empty]:
-                    print(empty)
                     return empty
 
             # Check Diagonals
@@ -182,7 +185,6 @@ class TicTacToe(Game):
                 else:
                     empty = i
             if count >= 2 and not b[empty]:
-                print(empty)
                 return empty
 
             count = 0
@@ -193,7 +195,6 @@ class TicTacToe(Game):
                 else:
                     empty = i
             if count >= 2 and not b[empty]:
-                print(empty)
                 return empty
         return 4
 
@@ -215,8 +216,8 @@ class TicTacToe(Game):
             board = game.draw_board(winner=winfo)
             game.winners.add(winner.id)
             game.award_xp()
-        elif "tie" in args:
-            board = game.draw_board()
+        elif "draw" in args:
+            board = game.draw_board("draw")
             game.award_xp()
         else:
             board = game.draw_board(footer="Game Cancelled")
@@ -251,6 +252,8 @@ class TicTacToe(Game):
                 move = 6
             elif self.board[5] and self.board[7]:
                 move = 8
+            else:
+                move = 4
         else:
             # check for wins
             move = self.check_potential_win()
