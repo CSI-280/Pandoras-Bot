@@ -117,7 +117,12 @@ class Player:
     @property
     def ratio(self):
         """The Win-Loss ratio for the player."""
-        return {k: self.wins[k] / self.losses[k] for k in self.wins.keys()}
+        ratio_dict = {}
+        for k, v in self.wins.items():
+            games = v + self.losses[k]
+            games = games if games else 1
+            ratio_dict[k] = self.wins[k] / games
+        return ratio_dict
 
     @property
     def most_played(self):
@@ -384,8 +389,7 @@ class Game:
             scoreboard.paste(xpbar, xpbar_offset)
 
             # DRAW W/L RATIO
-            games = player.games_played[self.name] if player.games_played[self.name] else 1
-            ratio = player.wins[self.name]/games * 100
+            ratio = player.ratio[self.name] * 100
             print(ratio)
             msg = f"{round(ratio, 1)}%"
             msgx, msgy = statfnt.getsize(msg)

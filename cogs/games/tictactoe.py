@@ -233,6 +233,8 @@ class TicTacToe(Game):
         edges = (self.board[1], self.board[3], self.board[5], self.board[7])
         options = [x for x in range(9) if not self.board[x]]  # open spots
 
+        move = self.check_potential_win()
+
         if not self.board[4]:
             move = 4
 
@@ -244,16 +246,20 @@ class TicTacToe(Game):
             move = 8 if self.board[1] or self.board[3] else 0
 
         elif len(options) == 6:
-            if self.board[1] and self.board[3]:
+            if self.board[1] and self.board[3] and self.board[1] == self.board[3]:
                 move = 0
-            elif self.board[1] and self.board[5]:
+            elif self.board[1] and self.board[5] and self.board[1] == self.board[5]:
                 move = 2
-            elif self.board[3] and self.board[7]:
+            elif self.board[3] and self.board[7] and self.board[3] == self.board[7]:
                 move = 6
-            elif self.board[5] and self.board[7]:
+            elif self.board[5] and self.board[7] and self.board[5] == self.board[7]:
                 move = 8
+            elif self.board[2] and self.board[6] and self.board[2] == self.board[6]:
+                move = 3
+            elif self.board[0] and self.board[8] and self.board[0] == self.board[8]:
+                move = 5
             else:
-                move = 4
+                move = self.check_potential_win()
         else:
             # check for wins
             move = self.check_potential_win()
