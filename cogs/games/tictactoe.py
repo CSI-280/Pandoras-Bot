@@ -27,10 +27,6 @@ class TicTacToe(Game):
         self.board_msg = None
         self.board = {k: None for k in range(9)}
 
-    @property
-    def ids(self):
-        return {p.id for p in self.players}
-
     def draw_board(self, **kwargs):
         """Draw the tic-tac-toe board."""
 
@@ -140,10 +136,17 @@ class TicTacToe(Game):
             return {"winner": b[2], "start": 2, "end": 6}
 
     def check_potential_win(self):
+        """Checks to see if a player can win and provides the move to block or win"""
         b = self.board
 
+        bpl = []  # bot-prioritized list
         for player in self.players:
+            if player.id == bot.user.id:
+                bpl.insert(0, player)
+            else:
+                bpl.append(player)
 
+        for player in bpl:
             # check Rows
             for i in range(0, 7, 3):
                 count = 0
@@ -192,7 +195,6 @@ class TicTacToe(Game):
             if count >= 2 and not b[empty]:
                 print(empty)
                 return empty
-
         return 4
 
     async def end(self, *args):
@@ -228,26 +230,28 @@ class TicTacToe(Game):
     def automove(self):
         """Automatically chooses a move for the lead player"""
         edges = (self.board[1], self.board[3], self.board[5], self.board[7])
-        corners = (self.board[0], self.board[2], self.board[6], self.board[8])
         options = [x for x in range(9) if not self.board[x]]  # open spots
 
         if not self.board[4]:
-            print("Going center because open")
             move = 4
 
         # move on side if middle taken
         elif len(options) == 8 and self.board[4]:
-            print("GOING RANDOM CORNER")
             move = random.choice((0, 2, 6, 8))
 
         elif len(options) == 7 and any(edges):
-            print("SET TRAP")
-            if self.board[1] or self.board[3]:
-                move = 8
-            else:
+            move = 8 if self.board[1] or self.board[3] else 0
+
+        elif len(options) == 6:
+            if self.board[1] and self.board[3]:
                 move = 0
+            elif self.board[1] and self.board[5]:
+                move = 2
+            elif self.board[3] and self.board[7]:
+                move = 6
+            elif self.board[5] and self.board[7]:
+                move = 8
         else:
-            print("CHECKING WINS")
             # check for wins
             move = self.check_potential_win()
 
