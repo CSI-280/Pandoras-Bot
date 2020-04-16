@@ -19,7 +19,7 @@ class UtilityCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="print", aliases=["write", "repeat", "p"])
+    @commands.command(name="print", aliases=["write", "repeat", "p", "w"])
     async def repeat_message(self, ctx, *, msg=""):
         """repeats whatever message is sent"""
         await ctx.message.delete()
@@ -29,13 +29,13 @@ class UtilityCommands(commands.Cog):
     async def scoreboardasdlkjfa(self, ctx, *, gains=40):
         """repeats whatever message is sent"""
         player = classes.Player.get(ctx.author.id)
-        banner = player.draw_banner()
-        xpbar = player.draw_xp(gains=int(gains))
-        card = player.draw_card(gains=int(gains))
-        # game = classes.Game.get(ctx.channel.id)
-        # img = game.draw_scoreboard()
+        # banner = player.draw_banner()
+        # xpbar = player.draw_xp(gains=int(gains))
+        # card = player.draw_card(gains=int(gains))
+        game = classes.Game.get(ctx.channel.id)
+        img = game.draw_scoreboard()
 
-        await ctx.send(file=to_discord_file(card))
+        await ctx.send(file=to_discord_file(img))
 
 
 def setup(bot):

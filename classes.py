@@ -1,15 +1,16 @@
 """Module for holding class structure for the bot to use."""
+import math
 from itertools import cycle, islice
-from random import randint
 from os.path import sep
+from random import randint
 
 import discord
+from PIL import Image, ImageDraw, ImageFont
 
 import auth
 import database as db
 import drawing
 from vars import bot
-from PIL import Image, ImageFont, ImageDraw
 
 
 class Guild:
@@ -223,7 +224,7 @@ class Player:
 
         return xpbar
 
-    def draw_card(self, gains=0):
+    def draw_card(self, crown=False, gains=0):
         c_width = 420
         c_height = 230
 
@@ -253,9 +254,11 @@ class Player:
                         c_height - (10 + bannery + 10 + xph))
         background.paste(xpbar, xpbar_offset)
 
-        crown = Image.open(f"assets{sep}crownicon.png")
-        crown.thumbnail((20, 20), Image.ANTIALIAS)
-        background.paste(crown, (5, 5), crown)
+        # Draw winners crown
+        if crown:
+            crown = Image.open(f"assets{sep}crownicon.png")
+            crown.thumbnail((20, 20), Image.ANTIALIAS)
+            background.paste(crown, (5, 5), crown)
 
         return background
 
@@ -298,12 +301,16 @@ class Game:
 
         Game._games[self.id] = self
 
+    @property
+    def ids(self):
+        return {p.id for p in self.players}
+
     @classmethod
     def get(cls, id):
         """Get a game based on a member passed in"""
         return cls._games.get(id)
 
-    def end_turn(self):
+    def next_turn(self):
         self.lead = next(self.turn_cycle)
 
     def award_xp(self):
@@ -316,44 +323,74 @@ class Game:
         db.update(*self.players)
 
     def draw_scoreboard(self):
-        c_width = 450
-        c_height = 200
+        """Draw the scoreboard of players"""
+        BAR_HEIGHT = 100
+        IMGW = 900
+        ROWS = len(self.players) + 1
+        IMGH = ROWS * BAR_HEIGHT
+        PADDING_TOP = .1 * BAR_HEIGHT
 
-        player = self.players[0]
-        user = player.user
+        NAME_PCT = .2
+        XP_PCT = .6
+        RATIO_PCT = .9
 
-        # Create new canvas
-        background = Image.new(
+        # Make image
+        scoreboard = Image.new(
             mode="RGBA",
-            size=(c_width, c_height),
-            color=(0, 0, 0, 128)
+            size=(IMGW, IMGH),
+            color=(0, 0, 0, 0)
         )
-        d = ImageDraw.Draw(background)  # set image for drawing
+        d = ImageDraw.Draw(scoreboard)
+        catfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 50)
+        statfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 40)
 
-        namefnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 20)
-        titlefnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 17)
+        # draw categories
+        for category, pct in zip(("Player", "XP", "W/L"), (NAME_PCT, XP_PCT, RATIO_PCT)):
+            msgx, _ = catfnt.getsize(category)
+            offset = (pct * IMGW - msgx // 2, PADDING_TOP)
+            d.text(offset, category, font=catfnt)
 
-        # assets
-        avatar = drawing.get_user_img(
-            user, size=128, mask="circle")
-        avatar.thumbnail((100, 100), Image.ANTIALIAS)
-
-        avaw, avah = avatar.size
-
-        avatar_offset = (10, 10)
-        background.paste(avatar, avatar_offset, avatar)
-
-        banner = player.draw_banner()
-        banner_offset = (avah + 20, 10)
-        background.paste(banner, banner_offset, banner)
-
-        xpbar = player.draw_xp()
-        _, xph = xpbar.size
-        xpbar_offset = (avaw + 10, avah + 10 - xph)
-        background.paste(xpbar, xpbar_offset, xpbar)
+        d.line((0, BAR_HEIGHT, IMGW, BAR_HEIGHT),
+               fill=(255, 255, 255, 255), width=5)
 
         crown = Image.open(f"assets{sep}crownicon.png")
-        crown.thumbnail((25, 25), Image.ANTIALIAS)
-        background.paste(crown, (5, 5), crown)
+        crown.thumbnail((50, 50), Image.ANTIALIAS)
 
-        return background
+        for i, player in enumerate(self.players, 1):
+            # rem = i % len(self.players) + 1  # 0,1,0,1
+            top = BAR_HEIGHT * i
+            center = top + BAR_HEIGHT//2
+
+            # DRAW CROWN
+            result = player.id in self.winners
+            if result:
+                _, cy = crown.size
+                scoreboard.paste(crown, (10, center - cy//2), crown)
+
+            # DRAW NAME
+            msgx, msgy = statfnt.getsize(player.name)
+            offset = (NAME_PCT*IMGW - msgx//2,
+                      center - msgy//2)
+            d.text(offset, player.name, font=statfnt)
+
+            # DRAW XPBAR
+            gains = Game.XP_MULTIPLIERS[self.name] * Game.XP_VALUES[result]
+            xpbar = player.draw_xp(gains=gains)
+            xpbar_width = int(.4 * IMGW)
+            xpbar_height = BAR_HEIGHT - 40
+            xpbar = xpbar.resize((xpbar_width, xpbar_height))
+            xpbar_offset = (int(XP_PCT * IMGW - xpbar_width // 2),
+                            center - xpbar_height//2)
+            scoreboard.paste(xpbar, xpbar_offset)
+
+            # DRAW W/L RATIO
+            games = player.games_played[self.name] if player.games_played[self.name] else 1
+            ratio = round(player.wins[self.name]/games, 3) * 100
+            print(ratio)
+            msg = f"{ratio}%"
+            msgx, msgy = statfnt.getsize(msg)
+            offset = (RATIO_PCT * IMGW - msgx//2,
+                      center - msgy//2)
+            d.text(offset, msg, font=statfnt)
+
+        return scoreboard
