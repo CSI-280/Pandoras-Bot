@@ -41,11 +41,19 @@ def get_help(p):
             "title": "Pandora's Bot Help",
             "description": f"Navigate between pages with the reaction buttons or use `{p}help <page>`",
             "1. Commands": "General, Non-game related commands",
+            "2. Games": "A list of games you can play",
             "-----------------------------": "[Github](https://github.com/CSI-280/Pandoras-Bot)"
         },
         "commands": {
-            "title": "Pandora's Bot Commands",
+            "title": "Pandora's Commands",
             "description": " ",
             "Commands": "list of commands go here",
+        },
+        "gamelist": {
+            "title": "Pandora's Games",
+            "description": " ",
+            "TicTacToe": "play with `!t`, `!ttt`",
+            "Hangman": "play with `!h`, `!hm`",
+            "Battleship": "play with `!bs`"  
         }
     }
