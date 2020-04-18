@@ -390,7 +390,6 @@ class Game:
 
             # DRAW W/L RATIO
             ratio = player.ratio[self.name] * 100
-            print(ratio)
             msg = f"{round(ratio, 1)}%"
             msgx, msgy = statfnt.getsize(msg)
             offset = (RATIO_PCT * IMGW - msgx//2,

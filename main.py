@@ -38,10 +38,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Get and send prefix
-    # if message.mentions and message.mentions[0].id == bot.user.id:
-    #     await message.channel.send(f"{get_prefix(bot, message)}help")
-
     await bot.process_commands(message)  # checks if message is command
 
 

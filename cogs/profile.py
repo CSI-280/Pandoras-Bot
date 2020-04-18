@@ -23,18 +23,22 @@ class ProfileCommands(commands.Cog):
         await ctx.send("Registration SUCCessful! UwU")
         db.update(new_player)
 
-    @commands.command(name="registerbot")
-    async def registerbot(self, ctx):
-        if ctx.author.id != 128595549975871488:
-            return
-        new_player = Player(bot.user.id)
-        await ctx.send("Registration SUCCessful! UwU")
-        db.update(new_player)
-
     @commands.command(name="card")
-    async def show_player_card(self, ctx):
+    async def show_player_card(self, ctx, *, pid=None):
         """Shows a player's game card"""
-        player = Player.get(ctx.author.id)
+
+        # Get the right id
+        if ctx.message.mentions:
+            print("mentioned")
+            pid = ctx.message.mentions[0].id
+        elif pid and pid.isdigit():
+            pid = int(pid)
+        else:
+            pid = ctx.author.id
+
+        # Get player and draw card of desired id
+        authorize(ctx, player=pid)
+        player = Player.get(pid)
         card = player.draw_card()
         await ctx.send(file=to_discord_file(card))
 
