@@ -35,10 +35,7 @@ def authorize(ctx, *args, **kwargs):
         raise UserInputError(
             "You need to mention a user for that command to work")
 
-    if "registered" in args and ctx.author.id in classes.Player._players:
+    if "registered" in args and classes.Player.get(ctx.author.id):
         raise RegistrationError("Already Registered")
-
-    if "player" in kwargs and kwargs["player"] not in classes.Player._players:
-        raise PlayerLookupError("Couldn't find that player")
 
     return True

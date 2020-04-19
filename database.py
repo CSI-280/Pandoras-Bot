@@ -1,3 +1,5 @@
+"""Holds database interaction functions."""
+
 import os
 import sys
 from pymongo import MongoClient
@@ -61,3 +63,23 @@ def getall():
 
     for player_dict in data:
         classes.Player.from_json(player_dict)
+
+
+def find_player(id):
+    """Find the player in the database"""
+    return player_coll.find_one({"id": id})
+
+
+def find_guild(id):
+    """Find the guild by id in the database"""
+    return guild_coll.find_one({"id": id})
+
+
+def delete_player(id):
+    """Find the player in the database and delete"""
+    return player_coll.delete_one({"id": id})
+
+
+def delete_guild(id):
+    """Find the guild by id in the database and delete"""
+    return guild_coll.delete_one({"id": id})
