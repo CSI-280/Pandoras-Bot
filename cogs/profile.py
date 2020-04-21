@@ -22,11 +22,14 @@ class ProfileCommands(commands.Cog):
     @commands.command(name="register")
     async def register_player(self, ctx):
         """Registers a player"""
-        authorize(ctx, "registered")
+        try:
+            Player.get(ctx.author.id)
+        except:
+            new_player = Player(ctx.author.id)
+            await ctx.send("You in")
+            return db.update(new_player)
 
-        new_player = Player(ctx.author.id)
-        await ctx.send("Registration SUCCessful! UwU")
-        db.update(new_player)
+        raise commands.UserInputError("Already registered")
 
     ############### SHOW PLAYER INFO ###############
 
