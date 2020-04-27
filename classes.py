@@ -11,6 +11,7 @@ import auth
 import database as db
 import drawing
 from vars import bot
+import utils
 
 
 class Guild:
@@ -45,10 +46,15 @@ class Guild:
     @classmethod
     def get(cls, id):
         """Find guild in the dictionary."""
-        guild = cls._guilds.get(id)
-        if not guild:
-            raise auth.MissingGuild()
-        return guild
+        try:
+            return cls._guilds[id]
+        except KeyError:
+            data = db.find_guild(id)
+            if data:
+                print("Guild retrieved from database")
+                return Guild.from_json(data)
+            else:
+                raise auth.MissingGuild("Not Found")
 
     @classmethod
     def pop(cls, id, alt=None):
@@ -97,17 +103,28 @@ class Player:
     def __init__(self, id, **kwargs):
         self.name = str(bot.get_user(id).name)
         self.id = id
+
+        # Currency/XP
         self.xp = kwargs.get("xp", 0)
+        self.pbucks = kwargs.get("pbucks", 0)
+
+        # Cosmetics
         self.banner = kwargs.get("banner", "dice")
         self.banners = kwargs.get("banners", ["dice", "bonobo", "lonewolf"])
         self.title = kwargs.get("title", "Benda")
         self.titles = kwargs.get("titles", ["Benda"])
+        self.card_bg = kwargs.get("card_background", ("#000000", 128))
 
-        # stats
+        # Statistics
         self.games_played = kwargs.get("games_played", Game.DEFAULT_STATS)
         self.wins = kwargs.get("wins", Game.DEFAULT_STATS)  # fat W's
         self.draws = kwargs.get("draws", Game.DEFAULT_STATS)
         Player._players[id] = self
+
+    @property
+    def card_background(self):
+        """Turns hex and opacity to RBGA Tuple"""
+        return utils.hex_to_rgb(self.card_bg[0]) + (self.card_bg[1],)
 
     @property
     def losses(self):
@@ -135,11 +152,16 @@ class Player:
 
     @classmethod
     def get(cls, id):
-        player = cls._players.get(id)
-        if not player:
-            raise auth.RegistrationError(
-                "All players are not registered. Register with the `register` command")
-        return player
+        try:
+            return cls._players[id]
+        except KeyError:
+            data = db.find_player(id)
+            if data:
+                print("Player retrieved from database")
+                return Player.from_json(data)
+            else:
+                raise auth.RegistrationError(
+                    "Couldn't find info for player. Make sure that you registered.")
 
     ################## STAT MANAGEMENT ##################
 
@@ -168,10 +190,12 @@ class Player:
         return {
             "id": self.id,
             "xp": self.xp,
+            "pbucks": self.pbucks,
             "title": self.title,
             "titles": self.titles,
             "banner": self.banner,
             "banners": self.banners,
+            "card_background": self.card_bg,
             "games_played": self.games_played,
             "wins": self.wins,
             "draws": self.draws
@@ -183,10 +207,12 @@ class Player:
         return Player(
             id=player["id"],
             xp=player.get("xp", 0),
-            banner=player.get("banner", "dice"),
-            banners=player.get("banners", ["dice", "bonobo", "lonewolf"]),
+            pbucks=player.get("pbucks", 0),
             title=player.get("title", "Benda"),
             titles=player.get("titles", ["Benda"]),
+            banner=player.get("banner", "dice"),
+            banners=player.get("banners", ["dice", "bonobo", "lonewolf"]),
+            card_background=player.get("card_background", ("#000000", 128)),
             games_played=player.get("games_played", Game.DEFAULT_STATS),
             wins=player.get("wins", Game.DEFAULT_STATS),
             draws=player.get("draws", Game.DEFAULT_STATS)
@@ -196,15 +222,60 @@ class Player:
 
     def draw_banner(self):
         """Draws the players banner."""
+        # open and set to draw
         banner = Image.open(f"assets{sep}banners{sep}{self.banner}.png")
-        d = ImageDraw.Draw(banner)  # set image for drawing
+        d = ImageDraw.Draw(banner)
+
+        # fonts
         namefnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 47)
         titlefnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 34)
+
+        # draw name and title
         _, namey = d.textsize(self.name, namefnt)
         name_offset = 100 - namey
         d.text((40, name_offset), self.name, font=namefnt)
         d.text((40, 105), self.title, font=titlefnt)
         return banner
+
+    def draw_banners(self):
+        """Draws all of the available banners the player has"""
+
+        # Banner dims
+        BWIDTH, BHEIGHT = 400, 100
+        BMIDDLE = BHEIGHT//2
+        MID_PADDING = 10
+        ROWS = math.ceil(len(self.banners)/2)
+        IMGW = BWIDTH*2+MID_PADDING
+        IMGH = ROWS * (BHEIGHT + MID_PADDING) - MID_PADDING
+
+        # Create new canvas
+        background = Image.new(
+            mode="RGBA",
+            size=(IMGW, IMGH),
+            color=self.card_background
+        )
+        font = ImageFont.truetype(f"assets{sep}Roboto.ttf", 30)
+
+        for i, name in enumerate(self.banners):
+            row = i // 2 * BHEIGHT + MID_PADDING * (i//2)  # 00112233
+            col = i % 2 * BWIDTH  # 01010101
+
+            if i % 2 == 1:
+                col += MID_PADDING
+
+            if i // 2 != 0:
+                row + MID_PADDING
+
+            banner = Image.open(f"assets{sep}banners{sep}{name}.png")
+            banner = banner.resize((BWIDTH, BHEIGHT))
+            d = ImageDraw.Draw(banner)
+
+            _, texty = font.getsize(name)
+            text_offset = (BWIDTH//10, BMIDDLE - texty//2)
+            d.text(text_offset, name, font=font)
+
+            background.paste(banner, (col, row))
+        return background
 
     def draw_xp(self, gains=0):
         """Draws the xp bar"""
@@ -237,7 +308,7 @@ class Player:
         background = Image.new(
             mode="RGBA",
             size=(c_width, c_height),
-            color=(27, 156, 252, 255)
+            color=self.card_background
         )
 
         avatar = drawing.get_user_img(self.user, size=128, mask="circle")
@@ -295,12 +366,10 @@ class Game:
         self.channel = channel
         self.winners = set()
         self.players = list(players)
-
         self.turn_cycle = islice(cycle(self.players),
                                  randint(0, len(self.players)-1),
                                  None)
-        self.lead = next(self.turn_cycle)
-
+        self.lead = next(self.turn_cycle)  # The player whose turn it is
         self.name = name
         self.id = channel.id
 
@@ -316,6 +385,7 @@ class Game:
         return cls._games.get(id)
 
     def next_turn(self):
+        """Change the lead to the next player in line."""
         self.lead = next(self.turn_cycle)
 
     def award_xp(self):
@@ -390,7 +460,6 @@ class Game:
 
             # DRAW W/L RATIO
             ratio = player.ratio[self.name] * 100
-            print(ratio)
             msg = f"{round(ratio, 1)}%"
             msgx, msgy = statfnt.getsize(msg)
             offset = (RATIO_PCT * IMGW - msgx//2,

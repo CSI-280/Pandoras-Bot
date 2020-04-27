@@ -8,7 +8,8 @@ extensions = [
     "cogs.errors",
     "cogs.utility",
     "cogs.games.tictactoe",
-    "cogs.profile"
+    "cogs.profile",
+    "cogs.shop"
 ]
 
 emoji_dict = {"checkmark": "✅",
@@ -54,6 +55,6 @@ def get_help(p):
             "description": " ",
             "TicTacToe": "play with `!t`, `!ttt`",
             "Hangman": "play with `!h`, `!hm`",
-            "Battleship": "play with `!bs`"  
+            "Battleship": "play with `!bs`"
         }
     }

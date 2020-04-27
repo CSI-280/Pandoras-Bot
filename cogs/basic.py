@@ -32,7 +32,7 @@ class BaseCommands(commands.Cog):
 
     @commands.command(name='howdy')
     async def howdy(self, ctx):
-        """Says howdy!"""
+        """Say howdy!"""
         await ctx.send(f"Howdy, {ctx.author.mention}!")
 
     @commands.command(name="game_list")
@@ -43,7 +43,7 @@ class BaseCommands(commands.Cog):
             !======== [List of Games] ========!
 
             Game #1
-            TicTacToe   : !tictactoe OR !t OR !ttt 
+            TicTacToe   : !tictactoe OR !t OR !ttt
 
             Game #2
             Hangman     :  !h

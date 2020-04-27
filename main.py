@@ -17,7 +17,7 @@ async def on_ready():
                                   name="@Pandora's Bot for help"))
 
     print("Generating Objects...")
-    db.getall()  # get and build returning guilds
+    db.getall()  # get and build returning guilds. This can probably be removed
 
     # collect new guild ids and create objects for them
     new_ids = {guild.id for guild in bot.guilds} - set(Guild._guilds.keys())
@@ -38,10 +38,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Get and send prefix
-    # if message.mentions and message.mentions[0].id == bot.user.id:
-    #     await message.channel.send(f"{get_prefix(bot, message)}help")
-
     await bot.process_commands(message)  # checks if message is command
 
 
@@ -58,7 +54,7 @@ async def on_guild_remove(guild):
     Guild.pop(guild.id, None)
 
     # remove from DB
-    db.guild_coll.delete_one({"id": guild.id})
+    db.delete_guild(guild.id)
 
 # loads extensions(cogs) listed in vars.py
 if __name__ == '__main__':
