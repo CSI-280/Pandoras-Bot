@@ -163,6 +163,9 @@ class Player:
                 raise auth.RegistrationError(
                     "Couldn't find info for player. Make sure that you registered.")
 
+    async def send(self, content=None, embed=None, file=None):
+        """Passthrough for sending DM."""
+        await self.user.send(content=content, embed=embed, file=file)
     ################## STAT MANAGEMENT ##################
 
     def update(self, game, won=False, draw=False):
@@ -371,7 +374,7 @@ class Game:
                                  None)
         self.lead = next(self.turn_cycle)  # The player whose turn it is
         self.name = name
-        self.id = channel.id
+        self.id = str(channel.id) + self.name
 
         Game._games[self.id] = self
 

@@ -7,9 +7,14 @@ extensions = [
     "cogs.basic",
     "cogs.errors",
     "cogs.utility",
-    "cogs.games.tictactoe",
+
+    # Cosmetic stuff
     "cogs.profile",
-    "cogs.shop"
+    "cogs.shop",
+
+    # Games
+    "cogs.games.tictactoe",
+    "cogs.games.rps"
 ]
 
 emoji_dict = {"checkmark": "✅",

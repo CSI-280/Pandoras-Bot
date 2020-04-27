@@ -1,148 +1,323 @@
-import discord
-from discord.ext import commands
+"""Module for handling the game of tic tac toe."""
+import io
 import random
-import os
+from os.path import sep
+import asyncio
+from itertools import cycle
+
+import discord
+import requests
+from discord.ext import commands
+from discord.ext.commands import UserInputError
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+import drawing
+from auth import authorize
+from classes import Player, Game
+from vars import bot, get_help, get_prefix
 
 
-class BattleShip:
-    def print_board(s, board):
+class Battleship(Game):
+    """Class for holding the tic tac toe board"""
 
-        # find out if you are printing the user 1 or 2 board
-        player = "user 2"
-        if s == "u":
-            player = "User 1"
+    def __init__(self, channel, p1, p2):
+        super().__init__("tictactoe", channel, p1, p2)
 
-        print("The " + player + "'s board look like this: \n")
+        # choose a random starting player
+        self.board_msg = None
+        self.board = {k: None for k in range(9)}
 
-        # print the horizontal numbers
-        print(" ")
-        for i in range(10):
-            print("  " + str(i + 1) + "  ")
-        print("\n")
+    def draw_board(self, *args, **kwargs):
+        """Draw the tic-tac-toe board."""
 
-        for i in range(10):
+        # Create new canvas
+        background = Image.open(f"assets{sep}TicTacToeBoard.png")
+        d = ImageDraw.Draw(background)  # set image for drawing
 
-            # print the vertical line number
-            if i != 9:
-                print(str(i + 1) + "  ")
-            else:
-                print(str(i + 1) + " ")
+        IMGW, IMGH = background.size
+        MID = IMGW // 6  # The dist to middle of each column/row
 
-            # print the board values, and cell dividers
-            for j in range(10):
-                if board[i][j] == -1:
-                    print(' ')
-                elif s == "u":
-                    print(board[i][j])
-                elif s == "c":
-                    if board[i][j] == "*" or board[i][j] == "$":
-                        print(board[i][j])
-                    else:
-                        print(" ")
+        # fonts
+        bigfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 240)
+        smallfnt = ImageFont.truetype(f"assets{sep}Roboto.ttf", 72)
 
-                if j != 9:
-                    print(" | ")
-            print
-
-            # print a horizontal line
-            if i != 9:
-                print("   ----------------------------------------------------------")
-            else:
-                print
-
-    def place_ships(self, board, ships):
-        # Place the user's ships and validate location.
-        for ship in ships.keys():
-
-            # get coordinates from user and validate the postion
-            valid = False
-            while (not valid):
-
-                self.print_board("u", board)
-                print("Placing a/an ") + ship
-                x, y = self.get_coor()
-                ori = self.v_or_h()
-                valid = self.validate(board, ships[ship], x, y, ori)
-                if not valid:
-                    print("Cannot place a ship there.\nPlease take a look at the board and try again.")
-                    input("Hit ENTER to continue")
-
-            # place the ship
-            board = self.place_ship(board, ships[ship], ship[0], ori, x, y)
-            self.print_board("u", board)
-
-        input("Done placing user ships. Hit ENTER to continue")
-        return board
-
-    def place_ships_user_2(self, board, ships):
-        # Place the second user's ships and validate location.
-        for ship in ships.keys():
-
-            # get coordinates from user and validate the postion
-            valid = False
-            while (not valid):
-
-                self.print_board("s", board)
-                print("Placing a/an ") + ship
-                x, y = self.get_coor()
-                ori = self.v_or_h()
-                valid = self.validate(board, ships[ship], x, y, ori)
-                if not valid:
-                    print("Cannot place a ship there.\nPlease take a look at the board and try again.")
-                    input("Hit ENTER to continue")
-
-            # place the ship
-            board = self.place_ship(board, ships[ship], ship[0], ori, x, y)
-            self.print_board("u", board)
-
-        input("Done placing user ships. Hit ENTER to continue")
-        return board
-
-    def place_ship(self, board, ship, s, ori, x, y):
-        # Place the ship at the correct orientation(vertical or horizontal)
-        if ori == "v":
-            for i in range(ship):
-                board[x + i][y] = s
-        elif ori == "h":
-            for i in range(ship):
-                board[x][y + i] = s
-
-        return board
-
-    def validate(self, board, ship, x, y, ori):
-        # Validate that the ship can be placed at given coordinates.
-        if ori == "v" and x + ship > 10:
-            return False
-        elif ori == "h" and y + ship > 10:
-            return False
+        # draw the message at the bottom of the image
+        if kwargs.get("footer"):
+            d.text((40, IMGH-100), kwargs.get("footer"),
+                   font=smallfnt, fill=(255, 255, 255, 255))
         else:
-            if ori == "v":
-                for i in range(ship):
-                    if board[x + i][y] != -1:
-                        return False
-            elif ori == "h":
-                for i in range(ship):
-                    if board[x][y + i] != -1:
-                        return False
+            # crop 100 px off the bottom
+            background = background.crop((0, 0, IMGW, IMGH-100))
+            d = ImageDraw.Draw(background)  # set image for drawing
 
-        return True
-    
-    def v_or_h(self):
-        # While true, ask the user if they want their ship placed vertically or horizontally.
+            # Draw board values or numbers
+        for k, v in self.board.items():
 
-    def get_coor(self):
-        # While true, ask the user for the coordinates they wish to attack at.
+            # The board is split into 6 sections x and y in order to center things easier
+            div = (k // 3) * 2 + 1  # 1, 1, 1, 3, 3, 3, 5, 5, 5 ---> Y Values
+            rem = (k % 3) * 2 + 1  # 1, 3, 5 repeating X Values
 
-    def make_move(self, board,x,y):
-        # Make a move on the board and return the result, hit, miss or try again for repeat hit.
+            text_color = (255, 255, 255, 20)
+            # Convert player to X and O
+            if v:
+                v = "X" if v == self.players[0] else "O"
+                text_color = (255, 255, 255, 255)
+                msg = v
+            else:
+                msg = str(k)
 
-    def user_move(self, board):
-        # Get coordinates from the user and try to make move.
-        # If move is a hit, check ship sunk and win condition.
+            # generate message offset values
+            msgx, msgy = bigfnt.getsize(msg)
 
-    def check_sink(self, board, x, y):
-        # Check which kind of ship is hit, mark the coordinate as a hit, then check if ship is sunk.
+            # Draw numbers in grid cells
+            x = MID * rem - (msgx//2)
+            y = MID * div - (msgy//2) - 25
+            d.text((x, y), msg, font=bigfnt, fill=text_color)
 
-    def check_win(self, board):
-        # Check the board to see if win condition is met. If there's a char that isn't hit or miss, return false.
+        # Draw the winner line
+        if "winner" in kwargs:
+            winfo = kwargs.get("winner")
+            draw_pos = (
+                ((winfo["start"] % 3) * 2+1) * MID,  # x1
+                ((winfo["start"] // 3) * 2+1) * MID,  # y1
+                ((winfo["end"] % 3) * 2+1) * MID,  # x2
+                ((winfo["end"] // 3) * 2+1) * MID  # y2
+            )
+            d.line(draw_pos, fill=(255, 0, 0, 255), width=15)
 
+        if "draw" in args:
+            dx, dy = bigfnt.getsize("DRAW!")
+            draw_offset = (IMGW//2 - dx//2, IMGH//2 - dy//2)
+            d.text(draw_offset, "DRAW!", font=bigfnt, fill=(235, 77, 75, 255))
+
+        return background
+
+    async def update(self):
+        """Update game statistics"""
+        # switch whose turn it is
+        self.next_turn()
+
+        # Have the bot move
+        if self.lead.id == bot.user.id and not all(self.board.values()):
+            self.automove()
+            self.next_turn()
+
+        # Check win
+        winfo = self.check_win()
+        if winfo:
+            return await self.end("winner")
+        elif all(self.board.values()):
+            return await self.end("draw")
+
+        new_board = self.draw_board(footer=f"{self.lead.name}'s turn")
+        new_board = drawing.to_discord_file(new_board)
+
+        try:
+            await self.board_msg.delete()
+        except:
+            pass
+
+        self.board_msg = await self.channel.send(file=new_board)
+
+    def check_win(self):
+        """Check if the board has a winner."""
+        b = self.board
+
+        # check Rows
+        for i in range(0, 7, 3):
+            if b[i] == b[i+1] == b[i+2] and b[i]:
+                return {"winner": b[i], "start": i, "end": i+2}
+
+        # Check Columns
+        for i in range(3):
+            if b[i] == b[i+3] == b[i+6] and b[i]:
+                return {"winner": b[i], "start": i, "end": i+6}
+
+        # Check Diagonals
+        if b[0] == b[4] == b[8] and b[0]:
+            return {"winner": b[0], "start": 0, "end": 8}
+
+        if b[2] == b[4] == b[6] and b[2]:
+            return {"winner": b[2], "start": 2, "end": 6}
+
+    def check_potential_win(self):
+        """Checks to see if a player can win and provides the move to block or win"""
+        b = self.board
+
+        bpl = []  # bot-prioritized list
+        for player in self.players:
+            if player.id == bot.user.id:
+                bpl.insert(0, player)
+            else:
+                bpl.append(player)
+
+        for player in bpl:
+            # check Rows
+            for i in range(0, 7, 3):
+                count = 0
+                empty = i
+                for j in range(3):
+                    if b[i+j] == player:
+                        count += 1
+                    else:
+                        empty = i + j
+                if count >= 2 and not b[empty]:
+                    return empty
+
+            # Check Columns
+            for i in range(3):
+                count = 0
+                empty = i
+                for j in range(0, 7, 3):
+                    if b[i+j] == player:
+                        count += 1
+                    else:
+                        empty = i + j
+                if count >= 2 and not b[empty]:
+                    return empty
+
+            # Check Diagonals
+            count = 0
+            empty = i
+            for i in range(0, 9, 4):
+                if b[i] == player:
+                    count += 1
+                else:
+                    empty = i
+            if count >= 2 and not b[empty]:
+                return empty
+
+            count = 0
+            empty = i
+            for i in range(2, 7, 2):
+                if b[i] == player:
+                    count += 1
+                else:
+                    empty = i
+            if count >= 2 and not b[empty]:
+                return empty
+        return 4
+
+    async def end(self, *args):
+        """End the game and clean up"""
+
+        # remove from active games
+        game = Game._games.pop(self.channel.id)
+
+        # update the board with win line if applicable
+        if game.board_msg:
+            await game.board_msg.delete()
+
+        # set what the bot draws
+
+        if "winner" in args:
+            winfo = game.check_win()
+            winner = winfo["winner"]
+            board = game.draw_board(winner=winfo)
+            game.winners.add(winner.id)
+            game.award_xp()
+        elif "draw" in args:
+            board = game.draw_board("draw")
+            game.award_xp()
+        else:
+            board = game.draw_board(footer="Game Cancelled")
+
+        await game.channel.send(file=drawing.to_discord_file(board))
+
+        if "winner" in args or "tie" in args:
+            sb = game.draw_scoreboard()
+            await game.channel.send(file=drawing.to_discord_file(sb))
+
+    def automove(self):
+        """Automatically chooses a move for the lead player"""
+        edges = (self.board[1], self.board[3], self.board[5], self.board[7])
+        options = [x for x in range(9) if not self.board[x]]  # open spots
+
+        move = self.check_potential_win()
+
+        if not self.board[4]:
+            move = 4
+
+        # move on side if middle taken
+        elif len(options) == 8 and self.board[4]:
+            move = random.choice((0, 2, 6, 8))
+
+        elif len(options) == 7 and any(edges):
+            move = 8 if self.board[1] or self.board[3] else 0
+
+        elif len(options) == 6:
+            if self.board[1] and self.board[3] and self.board[1] == self.board[3]:
+                move = 0
+            elif self.board[1] and self.board[5] and self.board[1] == self.board[5]:
+                move = 2
+            elif self.board[3] and self.board[7] and self.board[3] == self.board[7]:
+                move = 6
+            elif self.board[5] and self.board[7] and self.board[5] == self.board[7]:
+                move = 8
+            elif self.board[2] and self.board[6] and self.board[2] == self.board[6]:
+                move = 3
+            elif self.board[0] and self.board[8] and self.board[0] == self.board[8]:
+                move = 5
+            else:
+                move = self.check_potential_win()
+        else:
+            # check for wins
+            move = self.check_potential_win()
+
+        if self.board[move]:
+            move = random.choice(options)
+        self.board[move] = self.lead
+
+
+class BattleshipCog(commands.Cog):
+    """Handles all of the battleship commands and listeners."""
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+
+        # verify author
+        game = Game.get(message.channel.id)
+        if not game or message.author.id not in game.ids:
+            return
+
+        if message.content == "":
+            return
+
+        # end case
+        if message.content.lower() == "end":
+            await message.delete()
+            await game.end()
+
+        move = message.content[0:1]  # only first character
+
+        # check that space is open and input is valid
+        if message.author.id == game.lead.id and move in "012345678":
+            # verify move available
+            if not game.board[int(move)]:
+                await message.delete()
+                game.board[int(move)] = game.lead
+                await game.update()
+
+    @commands.command(name="tictactoe", aliases=["ttt", "t"])
+    async def tictactoe(self, ctx):
+        """Starts up a game of tic tac toe with another user"""
+        authorize(ctx, "mentions")  # check for a mentioned user
+
+        p1 = Player.get(ctx.author.id)
+        p2 = Player.get(ctx.message.mentions[0].id)
+
+        if p1 == p2:
+            raise UserInputError("You can't play against yourself")
+
+        # Create new game
+        game = TicTacToe(ctx.channel, p1, p2)
+
+        # draw and send board
+        await game.update()
+
+
+def setup(bot):
+    bot.add_cog(BattleshipCog(bot))

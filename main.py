@@ -17,7 +17,6 @@ async def on_ready():
                                   name="@Pandora's Bot for help"))
 
     print("Generating Objects...")
-    db.getall()  # get and build returning guilds. This can probably be removed
 
     # collect new guild ids and create objects for them
     new_ids = {guild.id for guild in bot.guilds} - set(Guild._guilds.keys())
