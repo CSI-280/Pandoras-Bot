@@ -1,3 +1,5 @@
+import random
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import UserInputError
@@ -32,7 +34,7 @@ class BaseCommands(commands.Cog):
 
     @commands.command(name='howdy')
     async def howdy(self, ctx):
-        """Says howdy!"""
+        """Say howdy!"""
         await ctx.send(f"Howdy, {ctx.author.mention}!")
 
     @commands.command(name="game_list")
@@ -43,7 +45,7 @@ class BaseCommands(commands.Cog):
             !======== [List of Games] ========!
 
             Game #1
-            TicTacToe   : !tictactoe OR !t OR !ttt 
+            TicTacToe   : !tictactoe OR !t OR !ttt
 
             Game #2
             Hangman     :  !h
@@ -51,6 +53,17 @@ class BaseCommands(commands.Cog):
             Game #3
             Battleship  :  !bs
             """)
+
+    @commands.command(name="coinflip", aliases=["flipcoin", "cf"])
+    async def flip_coin(self, ctx):
+        """Returns a random choice between head or tails."""
+        await ctx.send(f"**{random.choice(('Heads', 'Tails'))}**")
+
+    @commands.command(name="rolldie", aliases=["dieroll", "rd"])
+    async def roll_dice(self, ctx):
+        """Returns a random side of a die"""
+        values = list(range(1, 7))
+        await ctx.send(f"**{random.choice(values)}**")
 
 
 def setup(bot):

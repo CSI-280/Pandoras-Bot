@@ -171,6 +171,7 @@ class BattleShip:
     def check_win(self, board):
         # Check the board to see if win condition is met. If there's a char that isn't hit or miss, return false.
 
+        
 class BattleshipCog(commands.Cog):
     """Commands for the game."""
 
@@ -193,5 +194,4 @@ class BattleshipCog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(BattleshipCog(bot))
-
 
