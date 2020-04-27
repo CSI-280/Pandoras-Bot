@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 import random
 import os
+from auth import authorize
+from discord.ext.commands import UserInputError
+from classes import Player, Game
 
 
 class BattleShip:
@@ -168,5 +171,27 @@ class BattleShip:
     def check_win(self, board):
         # Check the board to see if win condition is met. If there's a char that isn't hit or miss, return false.
 
-def main():
-    # Create the ship types, board, player boards, and game loop.
+        
+class BattleshipCog(commands.Cog):
+    """Commands for the game."""
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="battleship", aliases=["b", "bsh"])
+    async def battleship(self, ctx):
+        """Starts up a game of battleship."""
+        authorize(ctx, "mentions")  # check for a mentioned user.
+
+        p1 = Player.get(ctx.author.id)
+        p2 = Player.get(ctx.message.mentions[0].id)
+
+        if p1 == p2:
+            raise UserInputError("Can't play against yourself")
+
+        game = BattleShip(ctx.channel, p1, p2)
+
+
+def setup(bot):
+    bot.add_cog(BattleshipCog(bot))
+
