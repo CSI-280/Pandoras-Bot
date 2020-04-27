@@ -126,7 +126,7 @@ class BattleShip:
                         return False
 
         return True
-    
+
     def v_or_h(self):
         # While true, ask the user if they want their ship placed vertically or horizontally.
 
@@ -135,10 +135,32 @@ class BattleShip:
 
     def make_move(self, board,x,y):
         # Make a move on the board and return the result, hit, miss or try again for repeat hit.
-
+        if board[x][y] == -1:
+            return "miss"
+        elif board[x][y] == '*' or board[x][y] == '$':
+            return "try again"
+        else:
+            return "hit"
     def user_move(self, board):
         # Get coordinates from the user and try to make move.
         # If move is a hit, check ship sunk and win condition.
+        while (True):
+            x, y = self.get_coor()
+            res = self.make_move(board, x, y)
+            if res == "hit":
+                print("Hit at " + str(x + 1) + "," + str(y + 1))
+                self.check_sink(board, x, y)
+                board[x][y] = '$'
+                if self.check_win(board):
+                    return "WIN"
+            elif res == "miss":
+                print("Sorry, " + str(x + 1) + "," + str(y + 1) + " is a miss.")
+                board[x][y] = "*"
+            elif res == "try again":
+                print("Sorry, that coordinate was already hit. Please try again")
+
+            if res != "try again":
+                return board
 
     def check_sink(self, board, x, y):
         # Check which kind of ship is hit, mark the coordinate as a hit, then check if ship is sunk.
@@ -146,3 +168,5 @@ class BattleShip:
     def check_win(self, board):
         # Check the board to see if win condition is met. If there's a char that isn't hit or miss, return false.
 
+def main():
+    # Create the ship types, board, player boards, and game loop.
