@@ -202,7 +202,7 @@ class TicTacToe(Game):
         """End the game and clean up"""
 
         # remove from active games
-        game = Game._games.pop(self.channel.id)
+        game = Game._games.pop(str(self.channel.id) + "tictactoe")
 
         # update the board with win line if applicable
         if game.board_msg:
@@ -224,7 +224,7 @@ class TicTacToe(Game):
 
         await game.channel.send(file=drawing.to_discord_file(board))
 
-        if "winner" in args or "tie" in args:
+        if "winner" in args or "draw" in args:
             sb = game.draw_scoreboard()
             await game.channel.send(file=drawing.to_discord_file(sb))
 
@@ -281,7 +281,7 @@ class TicTacToeCog(commands.Cog):
     async def on_message(self, message):
 
         # verify author
-        game = Game.get(message.channel.id)
+        game = Game.get(str(message.channel.id) + "tictactoe")
         if not game or message.author.id not in game.ids:
             return
 
@@ -293,7 +293,7 @@ class TicTacToeCog(commands.Cog):
             await message.delete()
             await game.end()
 
-        move = message.content[0:1]  # only first character
+        move = message.content[0]  # only first character
 
         # check that space is open and input is valid
         if message.author.id == game.lead.id and move in "012345678":
